@@ -1,3 +1,4 @@
+import ssl_bypass  # Import this FIRST, before any other imports
 from fastapi import FastAPI, UploadFile, File, HTTPException, BackgroundTasks, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -9,6 +10,13 @@ from pathlib import Path
 import logging
 from typing import List, Optional
 import asyncio
+import ssl
+import os
+import urllib3
+
+# Disable SSL warnings and verification
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+ssl._create_default_https_context = ssl._create_unverified_context
 
 
 # Local imports

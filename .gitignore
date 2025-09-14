@@ -1,4 +1,8 @@
 .env
 rag-env
-backend/rag-env
-llama_chatbot_env
+venv
+backend/rag-env/
+backend/llama_chatbot_env/
+react-frontend/node_modules/
+react-frontend/node_modules
+
