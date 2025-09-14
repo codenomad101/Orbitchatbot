@@ -1,0 +1,4 @@
+.env
+rag-env
+backend/rag-env
+llama_chatbot_env
