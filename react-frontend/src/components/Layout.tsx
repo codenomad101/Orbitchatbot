@@ -150,7 +150,7 @@ const Layout: React.FC = () => {
             <MenuIcon />
           </IconButton>
           <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1, color: '#0000fe' }}>
-            AI Document Assistant
+            Orbit Assistant
           </Typography>
           
           <IconButton
