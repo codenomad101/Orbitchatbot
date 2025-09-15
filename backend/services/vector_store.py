@@ -134,10 +134,14 @@ class VectorStore:
             # Add metadata
             self.metadata.extend(chunk_metadata)
             
+            # Verify synchronization
+            if self.index.ntotal != len(self.metadata):
+                logger.warning(f"Vector/metadata mismatch: {self.index.ntotal} vectors vs {len(self.metadata)} metadata entries")
+            
             # Save to disk
             self._save_index()
             
-            logger.info(f"Added {len(chunks)} chunks to vector store")
+            logger.info(f"Added {len(chunks)} chunks to vector store (total: {self.index.ntotal} vectors, {len(self.metadata)} metadata)")
             
         except Exception as e:
             logger.error(f"Error adding documents to vector store: {e}")
@@ -161,11 +165,15 @@ class VectorStore:
             # Prepare results
             results = []
             for i, (distance, idx) in enumerate(zip(distances[0], indices[0])):
+                # Only include results that have valid metadata
                 if idx < len(self.metadata):
                     result = self.metadata[idx].copy()
                     result["similarity_score"] = float(1 / (1 + distance))  # Convert distance to similarity
                     result["rank"] = i + 1
                     results.append(result)
+                else:
+                    # Log warning for invalid indices
+                    logger.warning(f"Search returned invalid index {idx} (metadata count: {len(self.metadata)})")
             
             return results
             
