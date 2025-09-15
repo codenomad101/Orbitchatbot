@@ -172,7 +172,7 @@ const Users: React.FC = () => {
 
   if (!isAdmin) {
     return (
-      <Container maxWidth="lg">
+      <Container maxWidth="xl" sx={{ py: 4 }}>
         <Alert severity="error">
           Admin access required to manage users.
         </Alert>
@@ -181,8 +181,8 @@ const Users: React.FC = () => {
   }
 
   return (
-    <Container maxWidth="lg">
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+    <Container maxWidth="xl" sx={{ py: 4 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
         <Box>
           <Typography variant="h4" sx={{ color: '#0000fe', fontWeight: 'bold' }}>
             👥 User Management
@@ -219,14 +219,14 @@ const Users: React.FC = () => {
       )}
 
       {/* Users Table */}
-      <Paper elevation={2} sx={{ borderRadius: 2 }}>
-        <Box sx={{ p: 2 }}>
+      <Paper elevation={2} sx={{ borderRadius: 3 }}>
+        <Box sx={{ p: 3 }}>
           <Typography variant="h6" gutterBottom>
             📋 All Users ({users.length})
           </Typography>
         </Box>
         
-        <Box sx={{ height: 500, width: '100%' }}>
+        <Box sx={{ height: 600, width: '100%', px: 2, pb: 2 }}>
           {loading ? (
             <LoadingSpinner message="Loading users..." />
           ) : (

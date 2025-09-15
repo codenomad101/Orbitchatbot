@@ -72,7 +72,7 @@ const Analytics: React.FC = () => {
 
   if (!isAdmin) {
     return (
-      <Container maxWidth="lg">
+      <Container maxWidth="xl" sx={{ py: 4 }}>
         <Alert severity="error">
           Admin access required to view analytics.
         </Alert>
@@ -82,7 +82,7 @@ const Analytics: React.FC = () => {
 
   if (loading) {
     return (
-      <Container maxWidth="lg">
+      <Container maxWidth="xl" sx={{ py: 4 }}>
         <LoadingSpinner message="Loading analytics data..." />
       </Container>
     );
@@ -90,7 +90,7 @@ const Analytics: React.FC = () => {
 
   if (error) {
     return (
-      <Container maxWidth="lg">
+      <Container maxWidth="xl" sx={{ py: 4 }}>
         <Alert severity="error">{error}</Alert>
       </Container>
     );
@@ -104,27 +104,27 @@ const Analytics: React.FC = () => {
   ];
 
   return (
-    <Container maxWidth="lg">
+    <Container maxWidth="xl" sx={{ py: 4 }}>
       <Typography variant="h4" gutterBottom sx={{ color: '#0000fe', fontWeight: 'bold' }}>
         📊 Analytics Dashboard
       </Typography>
       
-      <Typography variant="subtitle1" color="text.secondary" sx={{ mb: 4 }}>
+      <Typography variant="subtitle1" color="text.secondary" sx={{ mb: 5 }}>
         System overview and usage statistics
       </Typography>
 
       {/* Summary Cards */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
+      <Grid container spacing={4} sx={{ mb: 5 }}>
         <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ height: '100%' }}>
-            <CardContent>
+          <Card sx={{ height: '100%', borderRadius: 3, boxShadow: 3 }}>
+            <CardContent sx={{ p: 3 }}>
               <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                <PeopleIcon sx={{ fontSize: 40, color: '#0000fe', mr: 2 }} />
+                <PeopleIcon sx={{ fontSize: 48, color: '#0000fe', mr: 3 }} />
                 <Box>
-                  <Typography color="textSecondary" gutterBottom>
+                  <Typography color="textSecondary" gutterBottom variant="h6">
                     Total Users
                   </Typography>
-                  <Typography variant="h4">
+                  <Typography variant="h3" sx={{ fontWeight: 'bold' }}>
                     {data?.total_users || 0}
                   </Typography>
                 </Box>
@@ -134,15 +134,15 @@ const Analytics: React.FC = () => {
         </Grid>
         
         <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ height: '100%' }}>
-            <CardContent>
+          <Card sx={{ height: '100%', borderRadius: 3, boxShadow: 3 }}>
+            <CardContent sx={{ p: 3 }}>
               <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                <FolderIcon sx={{ fontSize: 40, color: '#1976d2', mr: 2 }} />
+                <FolderIcon sx={{ fontSize: 48, color: '#1976d2', mr: 3 }} />
                 <Box>
-                  <Typography color="textSecondary" gutterBottom>
+                  <Typography color="textSecondary" gutterBottom variant="h6">
                     Total Documents
                   </Typography>
-                  <Typography variant="h4">
+                  <Typography variant="h3" sx={{ fontWeight: 'bold' }}>
                     {data?.total_documents || 0}
                   </Typography>
                 </Box>
@@ -152,15 +152,15 @@ const Analytics: React.FC = () => {
         </Grid>
         
         <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ height: '100%' }}>
-            <CardContent>
+          <Card sx={{ height: '100%', borderRadius: 3, boxShadow: 3 }}>
+            <CardContent sx={{ p: 3 }}>
               <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                <SearchIcon sx={{ fontSize: 40, color: '#42a5f5', mr: 2 }} />
+                <SearchIcon sx={{ fontSize: 48, color: '#42a5f5', mr: 3 }} />
                 <Box>
-                  <Typography color="textSecondary" gutterBottom>
+                  <Typography color="textSecondary" gutterBottom variant="h6">
                     Total Queries
                   </Typography>
-                  <Typography variant="h4">
+                  <Typography variant="h3" sx={{ fontWeight: 'bold' }}>
                     {data?.search_stats?.reduce((acc, stat) => acc + stat.count, 0) || 0}
                   </Typography>
                 </Box>
@@ -170,15 +170,15 @@ const Analytics: React.FC = () => {
         </Grid>
         
         <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ height: '100%' }}>
-            <CardContent>
+          <Card sx={{ height: '100%', borderRadius: 3, boxShadow: 3 }}>
+            <CardContent sx={{ p: 3 }}>
               <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                <TrendingUpIcon sx={{ fontSize: 40, color: '#90caf9', mr: 2 }} />
+                <TrendingUpIcon sx={{ fontSize: 48, color: '#90caf9', mr: 3 }} />
                 <Box>
-                  <Typography color="textSecondary" gutterBottom>
+                  <Typography color="textSecondary" gutterBottom variant="h6">
                     Vector Chunks
                   </Typography>
-                  <Typography variant="h4">
+                  <Typography variant="h3" sx={{ fontWeight: 'bold' }}>
                     {data?.vector_store_stats?.total_chunks || 0}
                   </Typography>
                 </Box>
@@ -189,14 +189,14 @@ const Analytics: React.FC = () => {
       </Grid>
 
       {/* Charts */}
-      <Grid container spacing={3}>
+      <Grid container spacing={4}>
         {/* Search Activity Chart */}
         <Grid item xs={12} lg={8}>
-          <Paper sx={{ p: 3 }}>
-            <Typography variant="h6" gutterBottom>
+          <Paper sx={{ p: 4, borderRadius: 3, boxShadow: 3 }}>
+            <Typography variant="h5" gutterBottom sx={{ fontWeight: 'bold' }}>
               📈 Search Activity
             </Typography>
-            <Box sx={{ height: 300 }}>
+            <Box sx={{ height: 400 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={data?.search_stats || []}>
                   <CartesianGrid strokeDasharray="3 3" />
@@ -208,7 +208,7 @@ const Analytics: React.FC = () => {
                     type="monotone"
                     dataKey="count"
                     stroke="#0000fe"
-                    strokeWidth={2}
+                    strokeWidth={3}
                     name="Search Queries"
                   />
                 </LineChart>
@@ -219,11 +219,11 @@ const Analytics: React.FC = () => {
 
         {/* System Overview Pie Chart */}
         <Grid item xs={12} lg={4}>
-          <Paper sx={{ p: 3 }}>
-            <Typography variant="h6" gutterBottom>
+          <Paper sx={{ p: 4, borderRadius: 3, boxShadow: 3 }}>
+            <Typography variant="h5" gutterBottom sx={{ fontWeight: 'bold' }}>
               🥧 System Overview
             </Typography>
-            <Box sx={{ height: 300 }}>
+            <Box sx={{ height: 400 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
@@ -232,7 +232,7 @@ const Analytics: React.FC = () => {
                     cy="50%"
                     labelLine={false}
                     label={({ name, value }) => `${name}: ${value}`}
-                    outerRadius={80}
+                    outerRadius={100}
                     fill="#8884d8"
                     dataKey="value"
                   >
@@ -249,27 +249,27 @@ const Analytics: React.FC = () => {
 
         {/* Vector Store Statistics */}
         <Grid item xs={12}>
-          <Paper sx={{ p: 3 }}>
-            <Typography variant="h6" gutterBottom>
+          <Paper sx={{ p: 4, borderRadius: 3, boxShadow: 3 }}>
+            <Typography variant="h5" gutterBottom sx={{ fontWeight: 'bold' }}>
               🗄️ Vector Store Statistics
             </Typography>
-            <Grid container spacing={2}>
+            <Grid container spacing={4}>
               <Grid item xs={12} sm={6}>
-                <Box sx={{ textAlign: 'center', p: 2 }}>
-                  <Typography variant="h3" color="primary">
+                <Box sx={{ textAlign: 'center', p: 4 }}>
+                  <Typography variant="h2" color="primary" sx={{ fontWeight: 'bold' }}>
                     {data?.vector_store_stats?.total_vectors || 0}
                   </Typography>
-                  <Typography variant="body1" color="text.secondary">
+                  <Typography variant="h6" color="text.secondary">
                     Total Vectors
                   </Typography>
                 </Box>
               </Grid>
               <Grid item xs={12} sm={6}>
-                <Box sx={{ textAlign: 'center', p: 2 }}>
-                  <Typography variant="h3" color="secondary">
+                <Box sx={{ textAlign: 'center', p: 4 }}>
+                  <Typography variant="h2" color="secondary" sx={{ fontWeight: 'bold' }}>
                     {data?.vector_store_stats?.total_chunks || 0}
                   </Typography>
-                  <Typography variant="body1" color="text.secondary">
+                  <Typography variant="h6" color="text.secondary">
                     Document Chunks
                   </Typography>
                 </Box>

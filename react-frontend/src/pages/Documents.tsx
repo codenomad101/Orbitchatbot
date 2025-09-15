@@ -27,7 +27,7 @@ interface Document {
   file_type: string;
   file_size: number;
   upload_path: string;
-  processed: boolean;
+  processing_status: string;
   created_at: string;
   uploaded_by: number;
 }
@@ -64,13 +64,22 @@ const Documents: React.FC = () => {
   const onDrop = async (acceptedFiles: File[]) => {
     if (acceptedFiles.length === 0) return;
 
+    const file = acceptedFiles[0];
+    
+    // Check for duplicate filename on frontend
+    const existingDocument = documents.find(doc => doc.filename === file.name);
+    if (existingDocument) {
+      setError(`Document with filename "${file.name}" already exists. Please use a different filename or delete the existing document first.`);
+      return;
+    }
+
     setUploading(true);
     setError('');
     setSuccess('');
 
     try {
       const formData = new FormData();
-      formData.append('file', acceptedFiles[0]);
+      formData.append('file', file);
 
       await axios.post('/upload', formData, {
         headers: {
@@ -78,7 +87,7 @@ const Documents: React.FC = () => {
         },
       });
 
-      setSuccess(`File "${acceptedFiles[0].name}" uploaded successfully!`);
+      setSuccess(`File "${file.name}" uploaded successfully!`);
       fetchDocuments(); // Refresh the list
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Upload failed');
@@ -131,16 +140,39 @@ const Documents: React.FC = () => {
       renderCell: (params) => formatFileSize(params.value),
     },
     { 
-      field: 'processed', 
+      field: 'processing_status', 
       headerName: 'Status', 
       width: 120,
-      renderCell: (params) => (
-        <Chip
-          label={params.value ? 'Processed' : 'Processing'}
-          color={params.value ? 'success' : 'warning'}
-          size="small"
-        />
-      ),
+      renderCell: (params) => {
+        const status = params.value;
+        const getStatusColor = (status: string) => {
+          switch (status) {
+            case 'completed': return 'success';
+            case 'processing': return 'warning';
+            case 'failed': return 'error';
+            case 'pending': return 'default';
+            default: return 'default';
+          }
+        };
+        
+        const getStatusLabel = (status: string) => {
+          switch (status) {
+            case 'completed': return 'Completed';
+            case 'processing': return 'Processing';
+            case 'failed': return 'Failed';
+            case 'pending': return 'Pending';
+            default: return status;
+          }
+        };
+        
+        return (
+          <Chip
+            label={getStatusLabel(status)}
+            color={getStatusColor(status)}
+            size="small"
+          />
+        );
+      },
     },
     { 
       field: 'created_at', 
@@ -166,7 +198,7 @@ const Documents: React.FC = () => {
 
   if (!isAdmin) {
     return (
-      <Container maxWidth="lg">
+      <Container maxWidth="xl" sx={{ py: 4 }}>
         <Alert severity="error">
           Admin access required to view documents.
         </Alert>
@@ -175,12 +207,12 @@ const Documents: React.FC = () => {
   }
 
   return (
-    <Container maxWidth="lg">
+    <Container maxWidth="xl" sx={{ py: 4 }}>
       <Typography variant="h4" gutterBottom sx={{ color: '#0000fe', fontWeight: 'bold' }}>
         📄 Document Management
       </Typography>
       
-      <Typography variant="subtitle1" color="text.secondary" sx={{ mb: 3 }}>
+      <Typography variant="subtitle1" color="text.secondary" sx={{ mb: 4 }}>
         Upload and manage your documents
       </Typography>
 
@@ -199,7 +231,7 @@ const Documents: React.FC = () => {
       {/* Upload Area */}
       <Paper
         elevation={2}
-        sx={{ p: 3, mb: 3, borderRadius: 2 }}
+        sx={{ p: 4, mb: 4, borderRadius: 3 }}
       >
         <Typography variant="h6" gutterBottom>
           📤 Upload Documents
@@ -210,8 +242,8 @@ const Documents: React.FC = () => {
           sx={{
             border: '2px dashed',
             borderColor: isDragActive ? '#0000fe' : '#ccc',
-            borderRadius: 2,
-            p: 4,
+            borderRadius: 3,
+            p: 6,
             textAlign: 'center',
             cursor: 'pointer',
             backgroundColor: isDragActive ? '#f0f0ff' : '#fafafa',
@@ -243,17 +275,45 @@ const Documents: React.FC = () => {
             </Box>
           )}
         </Box>
+        
+        {/* Show existing documents to help avoid duplicates */}
+        {documents.length > 0 && (
+          <Box sx={{ mt: 2 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+              📋 Existing documents:
+            </Typography>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+              {documents.slice(0, 5).map((doc) => (
+                <Chip
+                  key={doc.id}
+                  label={doc.filename}
+                  size="small"
+                  variant="outlined"
+                  sx={{ fontSize: '0.7rem' }}
+                />
+              ))}
+              {documents.length > 5 && (
+                <Chip
+                  label={`+${documents.length - 5} more`}
+                  size="small"
+                  variant="outlined"
+                  sx={{ fontSize: '0.7rem' }}
+                />
+              )}
+            </Box>
+          </Box>
+        )}
       </Paper>
 
       {/* Documents Table */}
-      <Paper elevation={2} sx={{ borderRadius: 2 }}>
-        <Box sx={{ p: 2 }}>
+      <Paper elevation={2} sx={{ borderRadius: 3 }}>
+        <Box sx={{ p: 3 }}>
           <Typography variant="h6" gutterBottom>
             📋 Uploaded Documents ({documents.length})
           </Typography>
         </Box>
         
-        <Box sx={{ height: 400, width: '100%' }}>
+        <Box sx={{ height: 500, width: '100%', px: 2, pb: 2 }}>
           {loading ? (
             <LoadingSpinner message="Loading documents..." />
           ) : (

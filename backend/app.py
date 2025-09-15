@@ -189,6 +189,15 @@ async def upload_document(
                 detail=f"File too large. Max size: {config.MAX_FILE_SIZE} bytes"
             )
         
+        # Check for duplicate filename
+        document_service = DocumentService(db)
+        existing_document = document_service.get_document_by_filename(file.filename)
+        if existing_document:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Document with filename '{file.filename}' already exists. Please use a different filename or delete the existing document first."
+            )
+        
         # Save uploaded file
         file_path = Path(config.UPLOAD_DIR) / file.filename
         
@@ -196,7 +205,6 @@ async def upload_document(
             shutil.copyfileobj(file.file, buffer)
         
         # Create document record in database
-        document_service = DocumentService(db)
         document = document_service.create_document(
             filename=file.filename,
             original_filename=file.filename,
