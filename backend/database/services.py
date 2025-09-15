@@ -230,17 +230,36 @@ class SearchService:
             SearchQuery.user_id == user_id
         ).order_by(desc(SearchQuery.created_at)).limit(limit).all()
     
-    def get_search_stats(self) -> Dict[str, Any]:
+    def get_search_stats(self) -> List[Dict[str, Any]]:
         """Get search statistics"""
-        total_queries = self.db.query(SearchQuery).count()
-        recent_queries = self.db.query(SearchQuery).filter(
-            SearchQuery.created_at >= datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
-        ).count()
+        # Get queries from the last 7 days grouped by date
+        from datetime import datetime, timedelta
+        from sqlalchemy import func
         
-        return {
-            "total_queries": total_queries,
-            "queries_today": recent_queries
-        }
+        end_date = datetime.utcnow()
+        start_date = end_date - timedelta(days=7)
+        
+        # Query to get daily search counts
+        daily_stats = self.db.query(
+            func.date(SearchQuery.created_at).label('date'),
+            func.count(SearchQuery.id).label('count')
+        ).filter(
+            SearchQuery.created_at >= start_date
+        ).group_by(
+            func.date(SearchQuery.created_at)
+        ).order_by(
+            func.date(SearchQuery.created_at)
+        ).all()
+        
+        # Convert to the format expected by the frontend
+        search_stats = []
+        for stat in daily_stats:
+            search_stats.append({
+                "date": stat.date.strftime("%Y-%m-%d"),
+                "count": stat.count
+            })
+        
+        return search_stats
 
 class LogService:
     """Service for system logging"""

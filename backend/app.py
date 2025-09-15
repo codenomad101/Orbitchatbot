@@ -323,6 +323,8 @@ async def query_documents(
             context_texts.append(result["text"])
             sources.append({
                 "text": result["text"][:200] + "..." if len(result["text"]) > 200 else result["text"],
+                "title": result.get("metadata", {}).get("file_name", "Unknown Source"),
+                "score": result.get("similarity_score", 0),
                 "similarity_score": result.get("similarity_score", 0),
                 "chunk_id": result.get("chunk_id", 0),
                 "file_name": result.get("metadata", {}).get("file_name", "Unknown")
