@@ -185,6 +185,7 @@ class VectorStore:
         """Get vector store statistics"""
         return {
             "total_vectors": self.index.ntotal if self.index else 0,
+            "total_chunks": len(self.metadata),  # Add total_chunks for frontend compatibility
             "dimension": self.dimension,
             "index_file_exists": self.index_file.exists(),
             "metadata_count": len(self.metadata),
