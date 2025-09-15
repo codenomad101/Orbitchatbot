@@ -6,3 +6,32 @@ backend/llama_chatbot_env/
 react-frontend/node_modules/
 react-frontend/node_modules
 
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Vector store data files (runtime data, not code)
+backend/data/vector_store/*.bin
+backend/data/vector_store/*.pkl
+backend/data/vector_store/config.json
+
+# Log files
+*.log
+server.log
+
+# Uploads directory (runtime data)
+backend/uploads/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
