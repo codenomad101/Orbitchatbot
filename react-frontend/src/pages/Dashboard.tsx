@@ -58,10 +58,53 @@ const Dashboard: React.FC<DashboardProps> = ({ sidebarOpen = false, sidebarWidth
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [searchHistory, setSearchHistory] = useState<SearchHistoryItem[]>([]);
+  const [recentSearchesExpanded, setRecentSearchesExpanded] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const addHistoryToChat = (item: SearchHistoryItem) => {
+    // Close the recent searches accordion
+    setRecentSearchesExpanded(false);
+    
+    // Check if this history item is already in the chat to avoid duplicates
+    const existingUserMessage = messages.find(msg => msg.id === `history-${item.id}-user`);
+    if (existingUserMessage) {
+      // If already exists, scroll to the user message (question)
+      const messageElement = document.getElementById(`message-${existingUserMessage.id}`);
+      if (messageElement) {
+        messageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      return;
+    }
+
+    // Add the question and answer to the chat messages
+    const userMessage: Message = {
+      id: `history-${item.id}-user`,
+      text: item.query || '',
+      sender: 'user',
+      timestamp: new Date(item.created_at),
+    };
+    
+    const botMessage: Message = {
+      id: `history-${item.id}-bot`,
+      text: item.answer || '',
+      sender: 'bot',
+      timestamp: new Date(item.created_at),
+    };
+    
+    // Add both messages to the chat
+    setMessages(prev => [...prev, userMessage, botMessage]);
+    
+    // Scroll to the user message (question) after it's added
+    setTimeout(() => {
+      const messageElement = document.getElementById(`message-${userMessage.id}`);
+      if (messageElement) {
+        messageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 100);
   };
 
   useEffect(() => {
@@ -127,44 +170,73 @@ const Dashboard: React.FC<DashboardProps> = ({ sidebarOpen = false, sidebarWidth
     }
   };
 
-  const renderMessage = (message: Message) => (
-    <Box
-      key={message.id}
-      sx={{
-        display: 'flex',
-        justifyContent: message.sender === 'user' ? 'flex-end' : 'flex-start',
-        mb: 2,
-      }}
-    >
+  const renderMessage = (message: Message) => {
+    const isHistorical = message.id.startsWith('history-');
+    
+    return (
       <Box
+        key={message.id}
+        id={`message-${message.id}`}
         sx={{
           display: 'flex',
-          alignItems: 'flex-start',
-          maxWidth: '70%',
-          flexDirection: message.sender === 'user' ? 'row-reverse' : 'row',
+          justifyContent: message.sender === 'user' ? 'flex-end' : 'flex-start',
+          mb: 2,
+          opacity: isHistorical ? 0.8 : 1,
+          position: 'relative',
         }}
       >
-        <Avatar
-          sx={{
-            bgcolor: message.sender === 'user' ? '#0000fe' : '#1976d2',
-            mx: 1,
-            width: 32,
-            height: 32,
-          }}
-        >
-          {message.sender === 'user' ? <PersonIcon /> : <BotIcon />}
-        </Avatar>
+        {isHistorical && (
+          <Box
+            sx={{
+              position: 'absolute',
+              top: -8,
+              left: message.sender === 'user' ? 'auto' : 0,
+              right: message.sender === 'user' ? 0 : 'auto',
+              backgroundColor: '#e3f2fd',
+              color: '#1976d2',
+              px: 1,
+              py: 0.5,
+              borderRadius: 1,
+              fontSize: '0.7rem',
+              fontWeight: 'bold',
+              zIndex: 1,
+            }}
+          >
+            📚 From History
+          </Box>
+        )}
         
-        <Paper
-          elevation={1}
+        <Box
           sx={{
-            p: 2,
-            backgroundColor: message.sender === 'user' ? '#0000fe' : '#f5f5f5',
-            color: message.sender === 'user' ? 'white' : 'black',
-            borderRadius: 2,
+            display: 'flex',
+            alignItems: 'flex-start',
+            maxWidth: '70%',
+            flexDirection: message.sender === 'user' ? 'row-reverse' : 'row',
+            mt: isHistorical ? 2 : 0,
           }}
         >
-          <Typography variant="body1">{message.text}</Typography>
+          <Avatar
+            sx={{
+              bgcolor: message.sender === 'user' ? '#0000fe' : '#1976d2',
+              mx: 1,
+              width: 32,
+              height: 32,
+            }}
+          >
+            {message.sender === 'user' ? <PersonIcon /> : <BotIcon />}
+          </Avatar>
+          
+          <Paper
+            elevation={1}
+            sx={{
+              p: 2,
+              backgroundColor: message.sender === 'user' ? '#0000fe' : '#f5f5f5',
+              color: message.sender === 'user' ? 'white' : 'black',
+              borderRadius: 2,
+              border: isHistorical ? '2px dashed #e0e0e0' : 'none',
+            }}
+          >
+            <Typography variant="body1">{message.text}</Typography>
           
           {message.sources && message.sources.length > 0 && (
             <Box sx={{ mt: 1 }}>
@@ -189,7 +261,8 @@ const Dashboard: React.FC<DashboardProps> = ({ sidebarOpen = false, sidebarWidth
         </Paper>
       </Box>
     </Box>
-  );
+    );
+  };
 
   return (
     <Box
@@ -416,7 +489,11 @@ const Dashboard: React.FC<DashboardProps> = ({ sidebarOpen = false, sidebarWidth
           {/* Search History - Collapsible */}
           {searchHistory && searchHistory.length > 0 && (
             <Box sx={{ mt: 2 }}>
-              <Accordion sx={{ boxShadow: 'none', '&:before': { display: 'none' } }}>
+              <Accordion 
+                expanded={recentSearchesExpanded}
+                onChange={(event, isExpanded) => setRecentSearchesExpanded(isExpanded)}
+                sx={{ boxShadow: 'none', '&:before': { display: 'none' } }}
+              >
                 <AccordionSummary 
                   expandIcon={<ExpandMoreIcon />}
                   sx={{ 
@@ -447,53 +524,100 @@ const Dashboard: React.FC<DashboardProps> = ({ sidebarOpen = false, sidebarWidth
                             backgroundColor: '#f0f0ff',
                           },
                         }}
-                        onClick={() => setInputMessage(item.query || '')}
+                        onClick={() => addHistoryToChat(item)}
                       >
-                        {/* Query */}
-                        <Typography 
-                          variant="body2" 
-                          sx={{ 
-                            fontWeight: 'bold', 
-                            color: '#0000fe',
-                            mb: 1,
-                            fontSize: '0.875rem'
-                          }}
-                        >
-                          {item.query && item.query.length > 50 ? `${item.query.substring(0, 50)}...` : item.query || 'Unknown query'}
-                        </Typography>
+                        {/* Question - User message style */}
+                        <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 1.5 }}>
+                          <Box sx={{ 
+                            width: 24, 
+                            height: 24, 
+                            borderRadius: '50%', 
+                            backgroundColor: '#0000fe', 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            justifyContent: 'center',
+                            mr: 1.5,
+                            flexShrink: 0
+                          }}>
+                            <Typography sx={{ color: 'white', fontSize: '0.75rem', fontWeight: 'bold' }}>
+                              U
+                            </Typography>
+                          </Box>
+                          <Box sx={{ flex: 1 }}>
+                            <Typography 
+                              variant="body2" 
+                              sx={{ 
+                                color: '#333',
+                                fontSize: '0.875rem',
+                                lineHeight: 1.4,
+                                fontWeight: 500
+                              }}
+                            >
+                              {item.query || 'Unknown query'}
+                            </Typography>
+                          </Box>
+                        </Box>
                         
-                        {/* Answer */}
+                        {/* Answer - Bot message style */}
                         {item.answer && (
-                          <Typography 
-                            variant="body2" 
-                            sx={{ 
-                              color: '#666',
-                              fontSize: '0.75rem',
-                              lineHeight: 1.4,
-                              display: '-webkit-box',
-                              WebkitLineClamp: 2,
-                              WebkitBoxOrient: 'vertical',
-                              overflow: 'hidden',
-                            }}
-                          >
-                            {item.answer.length > 100 ? `${item.answer.substring(0, 100)}...` : item.answer}
-                          </Typography>
+                          <Box sx={{ display: 'flex', alignItems: 'flex-start' }}>
+                            <Box sx={{ 
+                              width: 24, 
+                              height: 24, 
+                              borderRadius: '50%', 
+                              backgroundColor: '#f0f0f0', 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              justifyContent: 'center',
+                              mr: 1.5,
+                              flexShrink: 0
+                            }}>
+                              <Typography sx={{ color: '#666', fontSize: '0.75rem', fontWeight: 'bold' }}>
+                                🤖
+                              </Typography>
+                            </Box>
+                            <Box sx={{ flex: 1 }}>
+                              <Typography 
+                                variant="body2" 
+                                sx={{ 
+                                  color: '#666',
+                                  fontSize: '0.8rem',
+                                  lineHeight: 1.4,
+                                  display: '-webkit-box',
+                                  WebkitLineClamp: 3,
+                                  WebkitBoxOrient: 'vertical',
+                                  overflow: 'hidden',
+                                }}
+                              >
+                                {item.answer.length > 150 ? `${item.answer.substring(0, 150)}...` : item.answer}
+                              </Typography>
+                            </Box>
+                          </Box>
                         )}
                         
-                        {/* Response time */}
-                        {item.response_time_ms && (
+                        {/* Response time and timestamp */}
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 1.5, pt: 1, borderTop: '1px solid #f0f0f0' }}>
+                          {item.response_time_ms && (
+                            <Typography 
+                              variant="caption" 
+                              sx={{ 
+                                color: '#999',
+                                fontSize: '0.7rem'
+                              }}
+                            >
+                              {item.response_time_ms}ms
+                            </Typography>
+                          )}
                           <Typography 
                             variant="caption" 
                             sx={{ 
                               color: '#999',
-                              fontSize: '0.7rem',
-                              mt: 0.5,
-                              display: 'block'
+                              fontSize: '0.7rem'
                             }}
                           >
-                            {item.response_time_ms}ms
+                            {new Date(item.created_at).toLocaleDateString()} {new Date(item.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                           </Typography>
-                        )}
+                        </Box>
                       </Box>
                     )) : (
                       <Typography variant="body2" color="text.secondary">
