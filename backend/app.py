@@ -615,7 +615,22 @@ async def get_search_history(
     try:
         search_service = SearchService(db)
         queries = search_service.get_user_search_history(current_user.id, limit)
-        return [SearchQueryResponse.model_validate(query) for query in queries]
+        
+        # Convert to response format with query and answer fields for frontend compatibility
+        results = []
+        for query in queries:
+            query_dict = {
+                "id": query.id,
+                "query_text": query.query_text,
+                "query": query.query_text,  # Add query field for frontend
+                "response_text": query.response_text,
+                "answer": query.response_text,  # Add answer field for frontend
+                "response_time_ms": query.response_time_ms,
+                "created_at": query.created_at
+            }
+            results.append(SearchQueryResponse.model_validate(query_dict))
+        
+        return results
         
     except Exception as e:
         logger.error(f"Error getting search history: {e}")

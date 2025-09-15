@@ -57,7 +57,9 @@ class DocumentResponse(BaseModel):
 class SearchQueryResponse(BaseModel):
     id: int
     query_text: str
+    query: str  # Add query field for frontend compatibility
     response_text: Optional[str] = None
+    answer: Optional[str] = None  # Add answer field for frontend compatibility
     response_time_ms: Optional[int] = None
     created_at: datetime
 

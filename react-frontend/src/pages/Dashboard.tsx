@@ -432,27 +432,69 @@ const Dashboard: React.FC<DashboardProps> = ({ sidebarOpen = false, sidebarWidth
                   </Box>
                 </AccordionSummary>
                 <AccordionDetails sx={{ pt: 0 }}>
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                     {searchHistory && searchHistory.length > 0 ? searchHistory.slice(0, 5).map((item) => (
-                      <Button
+                      <Box
                         key={item.id}
-                        variant="outlined"
-                        size="small"
-                        onClick={() => setInputMessage(item.query || '')}
                         sx={{
-                          borderColor: '#e0e0e0',
-                          color: '#666',
-                          textTransform: 'none',
+                          border: '1px solid #e0e0e0',
                           borderRadius: 2,
-                          fontSize: '0.75rem',
+                          p: 2,
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease',
                           '&:hover': {
                             borderColor: '#0000fe',
                             backgroundColor: '#f0f0ff',
                           },
                         }}
+                        onClick={() => setInputMessage(item.query || '')}
                       >
-                        {item.query && item.query.length > 30 ? `${item.query.substring(0, 30)}...` : item.query || 'Unknown query'}
-                      </Button>
+                        {/* Query */}
+                        <Typography 
+                          variant="body2" 
+                          sx={{ 
+                            fontWeight: 'bold', 
+                            color: '#0000fe',
+                            mb: 1,
+                            fontSize: '0.875rem'
+                          }}
+                        >
+                          {item.query && item.query.length > 50 ? `${item.query.substring(0, 50)}...` : item.query || 'Unknown query'}
+                        </Typography>
+                        
+                        {/* Answer */}
+                        {item.answer && (
+                          <Typography 
+                            variant="body2" 
+                            sx={{ 
+                              color: '#666',
+                              fontSize: '0.75rem',
+                              lineHeight: 1.4,
+                              display: '-webkit-box',
+                              WebkitLineClamp: 2,
+                              WebkitBoxOrient: 'vertical',
+                              overflow: 'hidden',
+                            }}
+                          >
+                            {item.answer.length > 100 ? `${item.answer.substring(0, 100)}...` : item.answer}
+                          </Typography>
+                        )}
+                        
+                        {/* Response time */}
+                        {item.response_time_ms && (
+                          <Typography 
+                            variant="caption" 
+                            sx={{ 
+                              color: '#999',
+                              fontSize: '0.7rem',
+                              mt: 0.5,
+                              display: 'block'
+                            }}
+                          >
+                            {item.response_time_ms}ms
+                          </Typography>
+                        )}
+                      </Box>
                     )) : (
                       <Typography variant="body2" color="text.secondary">
                         No recent searches
