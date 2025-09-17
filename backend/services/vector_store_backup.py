@@ -101,7 +101,7 @@ class VectorStore:
             raise
     
     def add_documents(self, chunks: List[Dict[str, Any]]):
-        """Add document chunks to the vector store with robust error handling"""
+        """Add document chunks to the vector store"""
         if not chunks:
             return
         
@@ -128,7 +128,8 @@ class VectorStore:
                 dimension = embeddings.shape[1]
                 self._create_new_index(dimension)
             
-            # Store current state for rollback
+            # CRITICAL: Add embeddings and metadata atomically
+            # Store current state for rollback if needed
             old_index_ntotal = self.index.ntotal
             old_metadata_count = len(self.metadata)
             
@@ -144,11 +145,9 @@ class VectorStore:
                     logger.error(f"CRITICAL: Vector/metadata mismatch detected! "
                                f"Vectors: {self.index.ntotal}, Metadata: {len(self.metadata)}")
                     
-                    # Rollback: Restore previous state
-                    logger.error("Rolling back due to mismatch")
-                    
-                    # Remove added vectors (this is tricky with FAISS, so we'll clear and rebuild)
-                    logger.error("Clearing index due to mismatch - will need to rebuild")
+                    # Rollback: Remove the added vectors
+                    # This is a simplified rollback - in production you'd want more sophisticated handling
+                    logger.error("Rolling back due to mismatch - clearing entire index")
                     self.clear()
                     raise ValueError("Vector/metadata mismatch - index cleared for safety")
                 
@@ -160,11 +159,9 @@ class VectorStore:
                 
             except Exception as e:
                 # Rollback on any error
-                logger.error(f"Error during add_documents: {e}")
-                # If we have a mismatch, clear everything to prevent corruption
-                if "mismatch" in str(e).lower():
-                    logger.error("Clearing index due to mismatch")
-                    self.clear()
+                logger.error(f"Error during add_documents, rolling back: {e}")
+                if self.index is not None and self.index.ntotal != old_index_ntotal:
+                    logger.error("Rollback failed - index state corrupted")
                 raise
             
         except Exception as e:

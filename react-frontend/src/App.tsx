@@ -11,6 +11,7 @@ import Dashboard from './pages/Dashboard';
 import Documents from './pages/Documents';
 import Users from './pages/Users';
 import Analytics from './pages/Analytics';
+import FormattingTest from './pages/FormattingTest';
 
 // Create Material-UI theme
 const theme = createTheme({
@@ -57,6 +58,7 @@ function App() {
                   <Route path="documents" element={<Documents />} />
                   <Route path="users" element={<Users />} />
                   <Route path="analytics" element={<Analytics />} />
+                  <Route path="formatting-test" element={<FormattingTest />} />
                 </Route>
                 
                 {/* Catch all route */}

@@ -72,6 +72,7 @@ class QueryResponse(BaseModel):
     answer: str
     sources: List[dict]
     query: str
+    intent: Optional[str] = None  # Add intent field
 
 @app.on_event("startup")
 async def startup_event():
@@ -320,7 +321,8 @@ async def query_documents(
             return QueryResponse(
                 answer="I couldn't find any relevant information in the uploaded documents to answer your question.",
                 sources=[],
-                query=question
+                query=question,
+                intent="unknown"
             )
         
         # Extract context from search results
@@ -338,8 +340,10 @@ async def query_documents(
                 "file_name": result.get("metadata", {}).get("file_name", "Unknown")
             })
         
-        # Generate answer using LLM
-        answer = await llm_handler.generate_response(question, context_texts)
+        # Generate answer using LLM with metadata
+        llm_result = await llm_handler.generate_response_with_metadata(question, context_texts)
+        answer = llm_result["response"]
+        intent = llm_result["intent"]
         
         # Update search query with response
         response_time = int((time.time() - start_time) * 1000)
@@ -358,7 +362,8 @@ async def query_documents(
         return QueryResponse(
             answer=answer,
             sources=sources,
-            query=question
+            query=question,
+            intent=intent
         )
         
     except HTTPException:

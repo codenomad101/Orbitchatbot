@@ -12,8 +12,8 @@ from pathlib import Path
 # Add the backend directory to the path
 sys.path.append(str(Path(__file__).parent))
 
-from database.config import init_database, check_database_connection, SessionLocal
-from database.models import Base, engine
+from database.config import init_database, check_database_connection, SessionLocal, engine
+from database.models import Base
 from auth.db_auth_handler import get_auth_handler
 import logging
 

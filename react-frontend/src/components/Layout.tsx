@@ -17,6 +17,7 @@ import {
   MenuItem,
   Divider,
 } from '@mui/material';
+import SkfLogo from '../assets/Skf_logo_white.svg';
 import {
   Dashboard as DashboardIcon,
   Chat as ChatIcon,
@@ -75,13 +76,51 @@ const Layout: React.FC = () => {
 
   const drawer = (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <Toolbar sx={{ backgroundColor: '#f5f5f5', borderBottom: '1px solid #e0e0e0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <Toolbar sx={{ 
+        backgroundColor: '#0000fe', 
+        borderBottom: '1px solid #0000cc', 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center',
+        minHeight: '64px'
+      }}>
         {!sidebarCollapsed && (
-          <Typography variant="h6" noWrap component="div" sx={{ color: '#0000fe', fontWeight: 'bold' }}>
-            🤖 SKF Orbitbot
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <img 
+              src={SkfLogo} 
+              alt="SKF Logo" 
+              style={{ 
+                height: '32px', 
+                width: 'auto',
+                filter: 'brightness(0) invert(1)' // Make logo white for blue background
+              }} 
+            />
+            <Typography variant="h6" component="div" sx={{ 
+              color: 'white', 
+              fontWeight:'bold',
+              fontSize: '20px'
+            }}>
+              Orbitbot
+            </Typography>
+          </Box>
         )}
-        <IconButton onClick={handleSidebarToggle} sx={{ color: '#0000fe' }}>
+        {sidebarCollapsed && (
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
+            {/* Logo hidden when sidebar is collapsed */}
+          </Box>
+        )}
+        <IconButton 
+          onClick={handleSidebarToggle} 
+          sx={{ 
+            color: 'white',
+            '&:hover': {
+              backgroundColor: 'rgba(255, 255, 255, 0.1)',
+            },
+            '& .MuiSvgIcon-root': {
+              color: 'white',
+            }
+          }}
+        >
           {sidebarCollapsed ? <ChevronRightIcon /> : <ChevronLeftIcon />}
         </IconButton>
       </Toolbar>
@@ -133,8 +172,8 @@ const Layout: React.FC = () => {
         sx={{
           width: { sm: `calc(100% - ${sidebarCollapsed ? collapsedDrawerWidth : drawerWidth}px)` },
           ml: { sm: `${sidebarCollapsed ? collapsedDrawerWidth : drawerWidth}px` },
-          backgroundColor: 'white',
-          color: 'black',
+          backgroundColor: '#0000fe',
+          color: 'white',
           boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
           transition: 'width 0.3s ease, margin-left 0.3s ease',
         }}
@@ -145,12 +184,22 @@ const Layout: React.FC = () => {
             aria-label="open drawer"
             edge="start"
             onClick={handleDrawerToggle}
-            sx={{ mr: 2, display: { sm: 'none' } }}
+            sx={{ 
+              mr: 2, 
+              display: { sm: 'none' },
+              color: 'white',
+              '&:hover': {
+                backgroundColor: 'rgba(255, 255, 255, 0.1)',
+              },
+              '& .MuiSvgIcon-root': {
+                color: 'white',
+              }
+            }}
           >
             <MenuIcon />
           </IconButton>
-          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1, color: '#0000fe' }}>
-            Orbit Assistant
+          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1, color: 'white' }}>
+            Your Personal Orbit Assistant
           </Typography>
           
           <IconButton

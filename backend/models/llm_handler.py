@@ -2,46 +2,42 @@ import ollama
 import httpx
 from typing import List, Dict, Any
 from utils import config
+from services.model_router import ModelRouter
 
 class LLMHandler:
     def __init__(self):
         self.client = ollama.Client(host=config.config.OLLAMA_HOST)
         self.model = config.config.OLLAMA_MODEL
+        self.model_router = ModelRouter()
 
     async def generate_response(self, prompt: str, context: List[str] = None) -> str:
-        """Generate response using LLAMA model with optional context"""
+        """Generate response using intelligent model routing"""
         try:
-            # Prepare the prompt with context if provided
-            if context:
-                context_text = "\n\n".join(context)
-                full_prompt = f"""
-Context information:
-{context_text}
-
-Question: {prompt}
-
-Based on the context provided above, please answer the question. If the answer cannot be found in the context, please say so.
-
-Answer:"""
-            else:
-                full_prompt = prompt
-            
-            # Generate response using Ollama
-            response = self.client.chat(
-                model=self.model,
-                messages=[
-                    {
-                        'role': 'user',
-                        'content': full_prompt
-                    }
-                ]
-            )
-            
-            return response['message']['content']
+            # Use the model router for intelligent routing
+            result = self.model_router.route_query(prompt, context)
+            return result['response']
             
         except Exception as e:
             print(f"Error generating response: {e}")
             return f"Sorry, I encountered an error while generating the response: {str(e)}"
+    
+    async def generate_response_with_metadata(self, prompt: str, context: List[str] = None) -> Dict[str, Any]:
+        """Generate response with full metadata including intent classification"""
+        try:
+            # Use the model router for intelligent routing
+            result = self.model_router.route_query(prompt, context)
+            return result
+            
+        except Exception as e:
+            print(f"Error generating response: {e}")
+            return {
+                'response': f"Sorry, I encountered an error while generating the response: {str(e)}",
+                'intent': 'error',
+                'confidence': 0.0,
+                'model_used': 'none',
+                'metadata': {'error': str(e)},
+                'explanation': 'Error response'
+            }
     
     async def test_connection(self) -> bool:
         """Test if Ollama service is available"""

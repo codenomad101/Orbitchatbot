@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
-  Container,
   Paper,
   TextField,
   Button,
@@ -13,10 +12,8 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
-  List,
-  ListItem,
-  ListItemText,
-  Divider,
+  IconButton,
+  Tooltip,
 } from '@mui/material';
 import { 
   Send as SendIcon, 
@@ -24,8 +21,11 @@ import {
   Person as PersonIcon,
   History as HistoryIcon,
   ExpandMore as ExpandMoreIcon,
+  Visibility as VisibilityIcon,
+  VisibilityOff as VisibilityOffIcon,
 } from '@mui/icons-material';
 import axios from 'axios';
+import FormattedText from '../components/FormattedText';
 
 interface Message {
   id: string;
@@ -37,6 +37,7 @@ interface Message {
     content: string;
     score: number;
   }>;
+  intent?: string; // Add intent to track response type
 }
 
 interface SearchHistoryItem {
@@ -59,10 +60,23 @@ const Dashboard: React.FC<DashboardProps> = ({ sidebarOpen = false, sidebarWidth
   const [error, setError] = useState('');
   const [searchHistory, setSearchHistory] = useState<SearchHistoryItem[]>([]);
   const [recentSearchesExpanded, setRecentSearchesExpanded] = useState(false);
+  const [visibleSources, setVisibleSources] = useState<Set<string>>(new Set());
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const toggleSourceVisibility = (messageId: string) => {
+    setVisibleSources(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(messageId)) {
+        newSet.delete(messageId);
+      } else {
+        newSet.add(messageId);
+      }
+      return newSet;
+    });
   };
 
   const addHistoryToChat = (item: SearchHistoryItem) => {
@@ -150,6 +164,7 @@ const Dashboard: React.FC<DashboardProps> = ({ sidebarOpen = false, sidebarWidth
         sender: 'bot',
         timestamp: new Date(),
         sources: response.data.sources,
+        intent: response.data.intent, // Include intent information
       };
 
       setMessages(prev => [...prev, botMessage]);
@@ -236,22 +251,45 @@ const Dashboard: React.FC<DashboardProps> = ({ sidebarOpen = false, sidebarWidth
               border: isHistorical ? '2px dashed #e0e0e0' : 'none',
             }}
           >
-            <Typography variant="body1">{message.text}</Typography>
+            <FormattedText 
+              text={message.text} 
+              variant="body1"
+              color={message.sender === 'user' ? 'white' : 'black'}
+            />
           
           {message.sources && message.sources.length > 0 && (
-            <Box sx={{ mt: 1 }}>
-              <Typography variant="caption" color="text.secondary">
-                Sources:
-              </Typography>
-              {message.sources.slice(0, 3).map((source, index) => (
-                <Chip
-                  key={index}
-                  label={`${source.title || 'Unknown Source'} (${Math.round((source.score || 0) * 100)}%)`}
+            <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Tooltip title={visibleSources.has(message.id) ? "Hide sources" : "Show sources"}>
+                <IconButton
                   size="small"
-                  sx={{ mr: 0.5, mt: 0.5, fontSize: '0.7rem' }}
-                  color="secondary"
-                />
-              ))}
+                  onClick={() => toggleSourceVisibility(message.id)}
+                  sx={{ 
+                    color: message.sender === 'user' ? 'white' : 'text.secondary',
+                    '&:hover': {
+                      backgroundColor: message.sender === 'user' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.04)',
+                    }
+                  }}
+                >
+                  {visibleSources.has(message.id) ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                </IconButton>
+              </Tooltip>
+              
+              {visibleSources.has(message.id) && (
+                <Box sx={{ flex: 1 }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+                    Sources:
+                  </Typography>
+                  {message.sources.slice(0, 3).map((source, index) => (
+                    <Chip
+                      key={index}
+                      label={`${source.title || 'Unknown Source'} (${Math.round((source.score || 0) * 100)}%)`}
+                      size="small"
+                      sx={{ mr: 0.5, mt: 0.5, fontSize: '0.7rem' }}
+                      color="secondary"
+                    />
+                  ))}
+                </Box>
+              )}
             </Box>
           )}
           
@@ -441,6 +479,67 @@ const Dashboard: React.FC<DashboardProps> = ({ sidebarOpen = false, sidebarWidth
           maxWidth: { xs: '100%', sm: '90%', md: '80%', lg: '70%' }, 
           mx: 'auto',
         }}>
+          {/* Suggested Questions */}
+          <Box sx={{ 
+            mb: 2,
+            overflowX: 'auto',
+            '&::-webkit-scrollbar': {
+              height: 6,
+            },
+            '&::-webkit-scrollbar-track': {
+              backgroundColor: '#f1f1f1',
+              borderRadius: 3,
+            },
+            '&::-webkit-scrollbar-thumb': {
+              backgroundColor: '#c1c1c1',
+              borderRadius: 3,
+              '&:hover': {
+                backgroundColor: '#a8a8a8',
+              },
+            },
+          }}>
+            <Box sx={{ 
+              display: 'flex', 
+              gap: 1.5, 
+              pb: 1,
+              minWidth: 'max-content',
+            }}>
+              {[
+                'What is TLDD?',
+                'Tell me about Orbit',
+                'What is LMK?',
+                'write a program to sort a string in Javascript',
+                'What is difference between LMKv1 and LMKv2?',
+                'How to reverse a string in Python?',
+                'Explain machine learning',
+                'What is lubrication system?',
+                'Tell me about SKF products',
+                'How does orbit monitoring work?'
+              ].map((question, index) => (
+                <Chip
+                  key={index}
+                  label={question}
+                  onClick={() => setInputMessage(question)}
+                  sx={{
+                    backgroundColor: '#0000fe',
+                    color: 'white',
+                    fontWeight: 500,
+                    fontSize: '0.875rem',
+                    height: 32,
+                    '&:hover': {
+                      backgroundColor: '#0000cc',
+                      cursor: 'pointer',
+                    },
+                    '& .MuiChip-label': {
+                      px: 1.5,
+                      whiteSpace: 'nowrap',
+                    },
+                  }}
+                />
+              ))}
+            </Box>
+          </Box>
+          
           <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-end' }}>
             <TextField
               fullWidth
@@ -577,20 +676,18 @@ const Dashboard: React.FC<DashboardProps> = ({ sidebarOpen = false, sidebarWidth
                               </Typography>
                             </Box>
                             <Box sx={{ flex: 1 }}>
-                              <Typography 
-                                variant="body2" 
-                                sx={{ 
-                                  color: '#666',
-                                  fontSize: '0.8rem',
-                                  lineHeight: 1.4,
-                                  display: '-webkit-box',
-                                  WebkitLineClamp: 3,
-                                  WebkitBoxOrient: 'vertical',
-                                  overflow: 'hidden',
-                                }}
-                              >
-                                {item.answer.length > 150 ? `${item.answer.substring(0, 150)}...` : item.answer}
-                              </Typography>
+                              <Box sx={{ 
+                                display: '-webkit-box',
+                                WebkitLineClamp: 3,
+                                WebkitBoxOrient: 'vertical',
+                                overflow: 'hidden',
+                              }}>
+                                <FormattedText 
+                                  text={item.answer.length > 150 ? `${item.answer.substring(0, 150)}...` : item.answer}
+                                  variant="body2"
+                                  color="#666"
+                                />
+                              </Box>
                             </Box>
                           </Box>
                         )}
