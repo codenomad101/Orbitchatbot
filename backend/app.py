@@ -1,5 +1,5 @@
 import ssl_bypass  # Import this FIRST, before any other imports
-from fastapi import FastAPI, UploadFile, File, HTTPException, BackgroundTasks, Depends
+from fastapi import FastAPI, UploadFile, File, HTTPException, BackgroundTasks, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
@@ -8,11 +8,13 @@ import os
 import time
 from pathlib import Path
 import logging
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 import asyncio
 import ssl
 import os
 import urllib3
+import httpx
+import json
 
 # Disable SSL warnings and verification
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -67,12 +69,17 @@ llm_handler = None
 class QueryRequest(BaseModel):
     question: str
     top_k: Optional[int] = None
+    provider: Optional[str] = None  # "ollama" or "openai", defaults to config.LLM_PROVIDER
 
 class QueryResponse(BaseModel):
     answer: str
     sources: List[dict]
     query: str
     intent: Optional[str] = None  # Add intent field
+
+class HeyGenVideoRequest(BaseModel):
+    video_inputs: List[Dict[str, Any]]
+    test: Optional[bool] = False
 
 @app.on_event("startup")
 async def startup_event():
@@ -341,9 +348,10 @@ async def query_documents(
             })
         
         # Generate answer using LLM with metadata
-        llm_result = await llm_handler.generate_response_with_metadata(question, context_texts)
+        provider = request.provider  # Get provider from request, or None to use config default
+        llm_result = await llm_handler.generate_response_with_metadata(question, context_texts, provider=provider)
         answer = llm_result["response"]
-        intent = llm_result["intent"]
+        intent = llm_result.get("intent", "general")
         
         # Update search query with response
         response_time = int((time.time() - start_time) * 1000)
@@ -700,6 +708,130 @@ async def get_system_logs(
     except Exception as e:
         logger.error(f"Error getting system logs: {e}")
         raise HTTPException(status_code=500, detail=f"Error getting system logs: {str(e)}")
+
+# HeyGen API Proxy Endpoints (to avoid CORS issues)
+@app.post("/heygen/video/generate")
+async def heygen_generate_video(
+    request: Request,
+    current_user: User = Depends(get_current_active_user)
+):
+    """Proxy endpoint for HeyGen video generation (avoids CORS)"""
+    if not hasattr(config, 'HEYGEN_API_KEY') or not config.HEYGEN_API_KEY:
+        raise HTTPException(status_code=500, detail="HeyGen API key not configured")
+    
+    try:
+        # Get JSON payload from frontend
+        payload = await request.json()
+        logger.info(f"HeyGen video generation request received: {json.dumps(payload, indent=2)[:500]}")
+        
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            response = await client.post(
+                f"{config.HEYGEN_BASE_URL}/video/generate",
+                headers={
+                    "X-Api-Key": config.HEYGEN_API_KEY,
+                    "Content-Type": "application/json"
+                },
+                json=payload,
+                timeout=30.0  # Wait up to 30s for HeyGen to accept
+            )
+            
+            logger.info(f"HeyGen generate response status: {response.status_code}")
+            logger.info(f"HeyGen generate response: {response.text[:500]}")
+            
+            # Return HeyGen's response exactly as is
+            if response.status_code != 200:
+                logger.error(f"HeyGen API error: {response.text}")
+                raise HTTPException(status_code=response.status_code, detail=response.text)
+            
+            response_data = response.json()
+            # Log the video_id or task_id if present
+            if isinstance(response_data, dict):
+                if 'data' in response_data:
+                    data = response_data['data']
+                    if 'video_id' in data:
+                        logger.info(f"Video generation started, video_id: {data['video_id']}")
+                    if 'task_id' in data:
+                        logger.info(f"Video generation started, task_id: {data['task_id']}")
+            
+            return response_data
+            
+    except httpx.HTTPStatusError as e:
+        logger.error(f"HeyGen API HTTP error: {e.response.status_code} - {e.response.text}")
+        raise HTTPException(status_code=e.response.status_code, detail=e.response.text)
+    except Exception as e:
+        logger.error(f"Error calling HeyGen API: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/heygen/video/{video_id}")
+async def heygen_get_video_status(
+    video_id: str,
+    current_user: User = Depends(get_current_active_user)
+):
+    """Proxy endpoint for HeyGen video status (avoids CORS)
+    Uses the correct HeyGen API format: /v1/video_status.get?video_id={video_id}
+    """
+    logger.info(f"Checking video status for video_id: {video_id}")
+    
+    if not hasattr(config, 'HEYGEN_API_KEY') or not config.HEYGEN_API_KEY:
+        raise HTTPException(status_code=500, detail="HeyGen API key not configured")
+    
+    headers = {
+        "X-Api-Key": config.HEYGEN_API_KEY,
+        "Accept": "application/json"
+    }
+    
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            # Use the correct endpoint with query parameter (not path parameter)
+            url = f"https://api.heygen.com/v1/video_status.get?video_id={video_id}"
+            logger.info(f"Calling HeyGen endpoint: {url}")
+            
+            response = await client.get(url, headers=headers)
+            logger.info(f"HeyGen response status: {response.status_code}")
+            logger.info(f"HeyGen response text: {response.text[:500]}")
+            
+            if response.status_code == 200:
+                return response.json()
+            
+            # Handle error responses
+            logger.error(f"HeyGen API returned {response.status_code} for video_id: {video_id}")
+            logger.error(f"Response text: {response.text}")
+            
+            try:
+                error_detail = response.json()
+            except:
+                error_detail = response.text
+            
+            raise HTTPException(
+                status_code=response.status_code, 
+                detail={
+                    "error": f"HeyGen API returned {response.status_code}",
+                    "message": error_detail,
+                    "video_id": video_id
+                }
+            )
+            
+    except HTTPException:
+        raise
+    except httpx.HTTPStatusError as e:
+        logger.error(f"HeyGen API HTTP error: {e.response.status_code} - {e.response.text}")
+        raise HTTPException(
+            status_code=e.response.status_code, 
+            detail={
+                "error": "HeyGen API error",
+                "status_code": e.response.status_code,
+                "message": e.response.text[:500]
+            }
+        )
+    except Exception as e:
+        logger.error(f"Error calling HeyGen API: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500, 
+            detail={
+                "error": "Internal server error",
+                "message": str(e)
+            }
+        )
 
 if __name__ == "__main__":
     import uvicorn

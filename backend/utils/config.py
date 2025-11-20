@@ -2,12 +2,32 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 
-load_dotenv()
+# Load .env file from backend directory
+backend_dir = Path(__file__).parent.parent  # Go up from utils/ to backend/
+env_path = backend_dir / '.env'
+load_dotenv(dotenv_path=env_path)
 
 class Config:
+    # LLM Provider Configuration
+    LLM_PROVIDER = os.getenv("LLM_PROVIDER", "azure_openai")  # Options: "ollama", "openai", or "azure_openai"
+    
     # Ollama Configuration
     OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11435")
     OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2:1b")
+    
+    # OpenAI Configuration
+    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+    OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-3.5-turbo")  # Options: gpt-3.5-turbo, gpt-4, gpt-4-turbo-preview
+    OPENAI_TEMPERATURE = float(os.getenv("OPENAI_TEMPERATURE", "0.4"))
+    OPENAI_MAX_TOKENS = int(os.getenv("OPENAI_MAX_TOKENS", "400"))
+    
+    # Azure OpenAI Configuration (Default)
+    AZURE_OPENAI_API_KEY = os.getenv("AZURE_OPENAI_API_KEY", """")
+    AZURE_OPENAI_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT", "")
+    AZURE_OPENAI_API_VERSION = os.getenv("AZURE_OPENAI_API_VERSION", "2024-02-01")
+    AZURE_OPENAI_DEPLOYMENT_NAME = os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME", "gpt-4")  # Default deployment name
+    AZURE_OPENAI_TEMPERATURE = float(os.getenv("AZURE_OPENAI_TEMPERATURE", "0.4"))
+    AZURE_OPENAI_MAX_TOKENS = int(os.getenv("AZURE_OPENAI_MAX_TOKENS", "1000"))
     
     # Multi-Model Configuration
     ENABLE_MULTI_MODEL = os.getenv("ENABLE_MULTI_MODEL", "True").lower() == "true"
@@ -20,10 +40,10 @@ class Config:
     APP_PORT = int(os.getenv("APP_PORT", 8000))
     DEBUG = os.getenv("DEBUG", "True").lower() == "true"
    
-    # Vector Store Configuration
+    # Vector Store Configuration - Optimized for better context
     VECTOR_STORE_PATH = os.getenv("VECTOR_STORE_PATH", "./data/vector_store")
-    CHUNK_SIZE = int(os.getenv("CHUNK_SIZE", 200))  # Even smaller chunks for more focused content
-    CHUNK_OVERLAP = int(os.getenv("CHUNK_OVERLAP", 30))  # Minimal overlap
+    CHUNK_SIZE = int(os.getenv("CHUNK_SIZE", 400))  # Larger chunks for better context
+    CHUNK_OVERLAP = int(os.getenv("CHUNK_OVERLAP", 80))  # More overlap for continuity
    
     # Embedding Configuration
     EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "all-MiniLM-L6-v2")
@@ -44,9 +64,13 @@ class Config:
     UPLOAD_DIR = os.getenv("UPLOAD_DIR", "./backend/uploads")
     MAX_FILE_SIZE = int(os.getenv("MAX_FILE_SIZE", 10485760))
    
-    # Retrieval Configuration - Optimized for focused responses
-    TOP_K_RESULTS = int(os.getenv("TOP_K_RESULTS", 3))  # Fewer, more relevant results
-    SIMILARITY_THRESHOLD = float(os.getenv("SIMILARITY_THRESHOLD", 0.5))  # Higher threshold for more relevant results
+    # Retrieval Configuration - Optimized for better accuracy
+    TOP_K_RESULTS = int(os.getenv("TOP_K_RESULTS", 4))  # More results for better context
+    SIMILARITY_THRESHOLD = float(os.getenv("SIMILARITY_THRESHOLD", 0.4))  # Lower threshold for more inclusive results
+    
+    # HeyGen API Configuration
+    HEYGEN_API_KEY = os.getenv("HEYGEN_API_KEY", "")
+    HEYGEN_BASE_URL = os.getenv("HEYGEN_BASE_URL", "https://api.heygen.com/v2")
    
     @classmethod
     def ensure_directories(cls):

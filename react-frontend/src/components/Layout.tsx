@@ -19,8 +19,6 @@ import {
 } from '@mui/material';
 import SkfLogo from '../assets/Skf_logo_white.svg';
 import {
-  Dashboard as DashboardIcon,
-  Chat as ChatIcon,
   Folder as DocumentsIcon,
   People as PeopleIcon,
   Analytics as AnalyticsIcon,
@@ -28,6 +26,14 @@ import {
   Menu as MenuIcon,
   ChevronLeft as ChevronLeftIcon,
   ChevronRight as ChevronRightIcon,
+  Settings as SettingsIcon,
+  Cloud as CloudIcon,
+  ExpandMore as ExpandMoreIcon,
+  ExpandLess as ExpandLessIcon,
+  School as KnowledgeIcon,
+  Code as CodingIcon,
+  RocketLaunch as OnboardingIcon,
+  History as HistoryIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -41,6 +47,7 @@ const Layout: React.FC = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -64,15 +71,23 @@ const Layout: React.FC = () => {
     navigate('/login');
   };
 
+  const handleSettingsToggle = () => {
+    setSettingsOpen(!settingsOpen);
+  };
+
   const menuItems = [
-    { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
-    { text: 'Chat', icon: <ChatIcon />, path: '/dashboard' },
-    ...(isAdmin ? [
-      { text: 'Documents', icon: <DocumentsIcon />, path: '/documents' },
-      { text: 'Users', icon: <PeopleIcon />, path: '/users' },
-      { text: 'Analytics', icon: <AnalyticsIcon />, path: '/analytics' },
-    ] : []),
+    { text: 'Chat History', icon: <HistoryIcon />, path: '/chat-history' },
+    { text: 'Knowledge-hub', icon: <KnowledgeIcon />, path: '/knowledge-hub' },
+    { text: 'Coding-hub', icon: <CodingIcon />, path: '/coding-hub' },
+    { text: 'Onboarding', icon: <OnboardingIcon />, path: '/onboarding' },
+    { text: 'AWS IT Solutions', icon: <CloudIcon />, path: '/aws-solutions' },
   ];
+
+  const settingsItems = isAdmin ? [
+    { text: 'Documents', icon: <DocumentsIcon />, path: '/documents' },
+    { text: 'Users', icon: <PeopleIcon />, path: '/users' },
+    { text: 'Analytics', icon: <AnalyticsIcon />, path: '/analytics' },
+  ] : [];
 
   const drawer = (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -157,10 +172,85 @@ const Layout: React.FC = () => {
               <ListItemIcon sx={{ minWidth: sidebarCollapsed ? 'auto' : 40, justifyContent: 'center' }}>
                 {item.icon}
               </ListItemIcon>
-              {!sidebarCollapsed && <ListItemText primary={item.text} />}
+              {!sidebarCollapsed && (
+                <ListItemText 
+                  primary={item.text} 
+                  sx={{
+                    '& .MuiListItemText-primary': {
+                      fontSize: ['Knowledge-hub', 'Coding-hub', 'Onboarding', 'AWS IT Solutions'].includes(item.text) ? '16px' : '14px',
+                      fontWeight: ['Knowledge-hub', 'Coding-hub', 'Onboarding', 'AWS IT Solutions'].includes(item.text) ? 'bold' : 'normal',
+                    }
+                  }}
+                />
+              )}
             </ListItemButton>
           </ListItem>
         ))}
+        
+        {/* Settings Section */}
+        {isAdmin && (
+          <>
+            <ListItem disablePadding sx={{ mb: 0.5 }}>
+              <ListItemButton
+                onClick={handleSettingsToggle}
+                sx={{
+                  borderRadius: 1,
+                  mx: 1,
+                  justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
+                  '&:hover': {
+                    backgroundColor: '#f0f0ff',
+                  },
+                }}
+                title={sidebarCollapsed ? 'Settings' : undefined}
+              >
+                <ListItemIcon sx={{ minWidth: sidebarCollapsed ? 'auto' : 40, justifyContent: 'center' }}>
+                  <SettingsIcon />
+                </ListItemIcon>
+                {!sidebarCollapsed && (
+                  <>
+                    <ListItemText primary="Settings" />
+                    {settingsOpen ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                  </>
+                )}
+              </ListItemButton>
+            </ListItem>
+            
+            {settingsOpen && !sidebarCollapsed && settingsItems.map((item) => (
+              <ListItem key={item.text} disablePadding sx={{ mb: 0.5, ml: 2 }}>
+                <ListItemButton
+                  selected={location.pathname === item.path}
+                  onClick={() => {
+                    navigate(item.path);
+                    setMobileOpen(false);
+                  }}
+                  sx={{
+                    borderRadius: 1,
+                    mx: 1,
+                    justifyContent: 'flex-start',
+                    '&.Mui-selected': {
+                      backgroundColor: '#0000fe',
+                      color: 'white',
+                      '&:hover': {
+                        backgroundColor: '#0000cc',
+                      },
+                      '& .MuiListItemIcon-root': {
+                        color: 'white',
+                      },
+                    },
+                    '&:hover': {
+                      backgroundColor: '#f0f0ff',
+                    },
+                  }}
+                >
+                  <ListItemIcon sx={{ minWidth: 40, justifyContent: 'center' }}>
+                    {item.icon}
+                  </ListItemIcon>
+                  <ListItemText primary={item.text} />
+                </ListItemButton>
+              </ListItem>
+            ))}
+          </>
+        )}
       </List>
     </Box>
   );

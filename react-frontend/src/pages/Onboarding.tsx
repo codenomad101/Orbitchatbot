@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   Paper,
   TextField,
@@ -10,20 +9,18 @@ import {
   Avatar,
   Alert,
   Chip,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
   IconButton,
   Tooltip,
-  ToggleButton,
-  ToggleButtonGroup,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
 } from '@mui/material';
 import { 
   Send as SendIcon, 
   SmartToy as BotIcon, 
   Person as PersonIcon,
   History as HistoryIcon,
+  ExpandMore as ExpandMoreIcon,
   Visibility as VisibilityIcon,
   VisibilityOff as VisibilityOffIcon,
 } from '@mui/icons-material';
@@ -40,7 +37,7 @@ interface Message {
     content: string;
     score: number;
   }>;
-  intent?: string; // Add intent to track response type
+  intent?: string;
 }
 
 interface SearchHistoryItem {
@@ -51,20 +48,19 @@ interface SearchHistoryItem {
   response_time_ms: number;
 }
 
-interface DashboardProps {
+interface OnboardingProps {
   sidebarOpen?: boolean;
   sidebarWidth?: number;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ sidebarOpen = false, sidebarWidth = 280 }) => {
-  const navigate = useNavigate();
+const Onboarding: React.FC<OnboardingProps> = ({ sidebarOpen = false, sidebarWidth = 280 }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [searchHistory, setSearchHistory] = useState<SearchHistoryItem[]>([]);
+  const [recentSearchesExpanded, setRecentSearchesExpanded] = useState(false);
   const [visibleSources, setVisibleSources] = useState<Set<string>>(new Set());
-  const [provider, setProvider] = useState<string>('ollama'); // 'ollama' or 'openai'
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -83,6 +79,41 @@ const Dashboard: React.FC<DashboardProps> = ({ sidebarOpen = false, sidebarWidth
     });
   };
 
+  const addHistoryToChat = (item: SearchHistoryItem) => {
+    setRecentSearchesExpanded(false);
+    
+    const existingUserMessage = messages.find(msg => msg.id === `history-${item.id}-user`);
+    if (existingUserMessage) {
+      const messageElement = document.getElementById(`message-${existingUserMessage.id}`);
+      if (messageElement) {
+        messageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      return;
+    }
+
+    const userMessage: Message = {
+      id: `history-${item.id}-user`,
+      text: item.query || '',
+      sender: 'user',
+      timestamp: new Date(item.created_at),
+    };
+    
+    const botMessage: Message = {
+      id: `history-${item.id}-bot`,
+      text: item.answer || '',
+      sender: 'bot',
+      timestamp: new Date(item.created_at),
+    };
+    
+    setMessages(prev => [...prev, userMessage, botMessage]);
+    
+    setTimeout(() => {
+      const messageElement = document.getElementById(`message-${userMessage.id}`);
+      if (messageElement) {
+        messageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 100);
+  };
 
   useEffect(() => {
     scrollToBottom();
@@ -119,7 +150,6 @@ const Dashboard: React.FC<DashboardProps> = ({ sidebarOpen = false, sidebarWidth
     try {
       const response = await axios.post('/query', {
         question: inputMessage,
-        provider: provider, // Include provider in request
       });
 
       const botMessage: Message = {
@@ -128,12 +158,11 @@ const Dashboard: React.FC<DashboardProps> = ({ sidebarOpen = false, sidebarWidth
         sender: 'bot',
         timestamp: new Date(),
         sources: response.data.sources,
-        intent: response.data.intent, // Include intent information
+        intent: response.data.intent,
       };
 
       setMessages(prev => [...prev, botMessage]);
       
-      // Refresh search history after successful query
       fetchSearchHistory();
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Failed to get response from AI');
@@ -294,7 +323,7 @@ const Dashboard: React.FC<DashboardProps> = ({ sidebarOpen = false, sidebarWidth
         }}
       >
         <Typography variant="h5" sx={{ color: '#0000fe', fontWeight: 'bold' }}>
-          🤖 SKF Orbitbot
+          🚀 Onboarding
         </Typography>
       </Box>
 
@@ -306,7 +335,7 @@ const Dashboard: React.FC<DashboardProps> = ({ sidebarOpen = false, sidebarWidth
           display: 'flex',
           flexDirection: 'column',
           backgroundColor: '#ffffff',
-          minHeight: 0, // Important for flex overflow
+          minHeight: 0,
         }}
       >
         <Box sx={{ 
@@ -331,20 +360,20 @@ const Dashboard: React.FC<DashboardProps> = ({ sidebarOpen = false, sidebarWidth
             >
               <BotIcon sx={{ fontSize: 80, color: '#0000fe', mb: 3 }} />
               <Typography variant="h4" sx={{ color: '#0000fe', fontWeight: 'bold', mb: 2 }}>
-                How can I help you today?
+                Welcome to SKF Orbitbot!
               </Typography>
               <Typography variant="h6" color="text.secondary" sx={{ mb: 4, maxWidth: 600 }}>
-                Ask me anything about your documents. I can help you find information, 
-                summarize content, answer questions, and provide insights.
+                Get started with your onboarding journey. Learn about SKF products, 
+                systems, and how to use Orbitbot effectively for your work.
               </Typography>
               
               {/* Quick suggestions */}
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, justifyContent: 'center', maxWidth: 800 }}>
                 {[
-                  "What documents do we have?",
-                  "Summarize the latest report",
-                  "Find information about...",
-                  "Explain the key points"
+                  "What is SKF?",
+                  "How to use Orbitbot?",
+                  "Tell me about the platform",
+                  "What can I do here?"
                 ].map((suggestion, index) => (
                   <Button
                     key={index}
@@ -410,7 +439,7 @@ const Dashboard: React.FC<DashboardProps> = ({ sidebarOpen = false, sidebarWidth
                     >
                       <CircularProgress size={20} sx={{ mr: 1 }} />
                       <Typography variant="body2" color="text.secondary">
-                        Orbitbot is thinking...
+                        Onboarding assistant is thinking...
                       </Typography>
                     </Paper>
                   </Box>
@@ -462,23 +491,23 @@ const Dashboard: React.FC<DashboardProps> = ({ sidebarOpen = false, sidebarWidth
               },
             },
           }}>
-            {/* <Box sx={{ 
+            <Box sx={{ 
               display: 'flex', 
               gap: 1.5, 
               pb: 1,
               minWidth: 'max-content',
             }}>
               {[
-                'What is TLDD?',
-                'Tell me about Orbit',
-                'What is LMK?',
-                'write a program to sort a string in Javascript',
-                'What is difference between LMKv1 and LMKv2?',
-                'How to reverse a string in Python?',
-                'Explain machine learning',
-                'What is lubrication system?',
-                'Tell me about SKF products',
-                'How does orbit monitoring work?'
+                'What is SKF?',
+                'How to use Orbitbot?',
+                'Tell me about the platform',
+                'What can I do here?',
+                'How to get started?',
+                'What are the main features?',
+                'How to navigate the system?',
+                'What documents are available?',
+                'How to ask questions?',
+                'What is Orbit monitoring?'
               ].map((question, index) => (
                 <Chip
                   key={index}
@@ -501,46 +530,7 @@ const Dashboard: React.FC<DashboardProps> = ({ sidebarOpen = false, sidebarWidth
                   }}
                 />
               ))}
-            </Box> */}
-          </Box>
-          
-          {/* Provider Selection */}
-          <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 500 }}>
-              LLM Provider:
-            </Typography>
-            <ToggleButtonGroup
-              value={provider}
-              exclusive
-              onChange={(e, newProvider) => {
-                if (newProvider !== null) {
-                  setProvider(newProvider);
-                }
-              }}
-              size="small"
-              sx={{
-                '& .MuiToggleButton-root': {
-                  px: 2,
-                  py: 0.5,
-                  textTransform: 'none',
-                  borderColor: '#0000fe',
-                  color: '#0000fe',
-                  '&.Mui-selected': {
-                    backgroundColor: '#0000fe',
-                    color: 'white',
-                    '&:hover': {
-                      backgroundColor: '#0000cc',
-                    },
-                  },
-                  '&:hover': {
-                    backgroundColor: '#f0f0ff',
-                  },
-                },
-              }}
-            >
-              <ToggleButton value="ollama">Ollama</ToggleButton>
-              <ToggleButton value="openai">OpenAI</ToggleButton>
-            </ToggleButtonGroup>
+            </Box>
           </Box>
           
           <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-end' }}>
@@ -548,7 +538,7 @@ const Dashboard: React.FC<DashboardProps> = ({ sidebarOpen = false, sidebarWidth
               fullWidth
               multiline
               maxRows={4}
-              placeholder="Message Orbitbot..."
+              placeholder="Ask about getting started or onboarding..."
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
               onKeyPress={handleKeyPress}
@@ -588,25 +578,145 @@ const Dashboard: React.FC<DashboardProps> = ({ sidebarOpen = false, sidebarWidth
             </Button>
           </Box>
           
-          {/* Link to Chat History */}
+          {/* Search History - Collapsible */}
           {searchHistory && searchHistory.length > 0 && (
-            <Box sx={{ mt: 2, textAlign: 'center' }}>
-              <Button
-                variant="outlined"
-                startIcon={<HistoryIcon />}
-                onClick={() => navigate('/chat-history')}
-                sx={{
-                  borderColor: '#0000fe',
-                  color: '#0000fe',
-                  textTransform: 'none',
-                  '&:hover': {
-                    backgroundColor: '#f0f0ff',
-                    borderColor: '#0000cc',
-                  },
-                }}
+            <Box sx={{ mt: 2 }}>
+              <Accordion 
+                expanded={recentSearchesExpanded}
+                onChange={(event, isExpanded) => setRecentSearchesExpanded(isExpanded)}
+                sx={{ boxShadow: 'none', '&:before': { display: 'none' } }}
               >
-                View All Chat History ({searchHistory.length} conversations)
-              </Button>
+                <AccordionSummary 
+                  expandIcon={<ExpandMoreIcon />}
+                  sx={{ 
+                    minHeight: 'auto',
+                    '& .MuiAccordionSummary-content': { margin: '8px 0' }
+                  }}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <HistoryIcon sx={{ mr: 1, color: '#666', fontSize: 20 }} />
+                    <Typography variant="body2" color="text.secondary">
+                      Recent searches
+                    </Typography>
+                  </Box>
+                </AccordionSummary>
+                <AccordionDetails sx={{ pt: 0 }}>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    {searchHistory && searchHistory.length > 0 ? searchHistory.slice(0, 5).map((item) => (
+                      <Box
+                        key={item.id}
+                        sx={{
+                          border: '1px solid #e0e0e0',
+                          borderRadius: 2,
+                          p: 2,
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease',
+                          '&:hover': {
+                            borderColor: '#0000fe',
+                            backgroundColor: '#f0f0ff',
+                          },
+                        }}
+                        onClick={() => addHistoryToChat(item)}
+                      >
+                        {/* Question - User message style */}
+                        <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 1.5 }}>
+                          <Box sx={{ 
+                            width: 24, 
+                            height: 24, 
+                            borderRadius: '50%', 
+                            backgroundColor: '#0000fe', 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            justifyContent: 'center',
+                            mr: 1.5,
+                            flexShrink: 0
+                          }}>
+                            <Typography sx={{ color: 'white', fontSize: '0.75rem', fontWeight: 'bold' }}>
+                              U
+                            </Typography>
+                          </Box>
+                          <Box sx={{ flex: 1 }}>
+                            <Typography 
+                              variant="body2" 
+                              sx={{ 
+                                color: '#333',
+                                fontSize: '0.875rem',
+                                lineHeight: 1.4,
+                                fontWeight: 500
+                              }}
+                            >
+                              {item.query || 'Unknown query'}
+                            </Typography>
+                          </Box>
+                        </Box>
+                        
+                        {/* Answer - Bot message style */}
+                        {item.answer && (
+                          <Box sx={{ display: 'flex', alignItems: 'flex-start' }}>
+                            <Box sx={{ 
+                              width: 24, 
+                              height: 24, 
+                              borderRadius: '50%', 
+                              backgroundColor: '#f0f0f0', 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              justifyContent: 'center',
+                              mr: 1.5,
+                              flexShrink: 0
+                            }}>
+                              <Typography sx={{ color: '#666', fontSize: '0.75rem', fontWeight: 'bold' }}>
+                                🤖
+                              </Typography>
+                            </Box>
+                            <Box sx={{ flex: 1 }}>
+                              <Box sx={{ 
+                                display: '-webkit-box',
+                                WebkitLineClamp: 3,
+                                WebkitBoxOrient: 'vertical',
+                                overflow: 'hidden',
+                              }}>
+                                <FormattedText 
+                                  text={item.answer.length > 150 ? `${item.answer.substring(0, 150)}...` : item.answer}
+                                  variant="body2"
+                                  color="#666"
+                                />
+                              </Box>
+                            </Box>
+                          </Box>
+                        )}
+                        
+                        {/* Response time and timestamp */}
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 1.5, pt: 1, borderTop: '1px solid #f0f0f0' }}>
+                          {item.response_time_ms && (
+                            <Typography 
+                              variant="caption" 
+                              sx={{ 
+                                color: '#999',
+                                fontSize: '0.7rem'
+                              }}
+                            >
+                              {item.response_time_ms}ms
+                            </Typography>
+                          )}
+                          <Typography 
+                            variant="caption" 
+                            sx={{ 
+                              color: '#999',
+                              fontSize: '0.7rem'
+                            }}
+                          >
+                            {new Date(item.created_at).toLocaleDateString()} {new Date(item.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    )) : (
+                      <Typography variant="body2" color="text.secondary">
+                        No recent searches
+                      </Typography>
+                    )}
+                  </Box>
+                </AccordionDetails>
+              </Accordion>
             </Box>
           )}
         </Box>
@@ -615,4 +725,4 @@ const Dashboard: React.FC<DashboardProps> = ({ sidebarOpen = false, sidebarWidth
   );
 };
 
-export default Dashboard;
+export default Onboarding;

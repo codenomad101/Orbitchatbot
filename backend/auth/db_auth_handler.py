@@ -1,4 +1,5 @@
 import jwt
+from jwt.exceptions import PyJWTError
 from datetime import datetime, timedelta
 from passlib.context import CryptContext
 from typing import Optional, Dict, Any
@@ -47,6 +48,7 @@ class DatabaseAuthHandler:
         # Ensure subject is a string
         if "sub" in to_encode:
             to_encode["sub"] = str(to_encode["sub"])
+        
         encoded_jwt = jwt.encode(to_encode, self.secret_key, algorithm=self.algorithm)
         return encoded_jwt
     
@@ -64,7 +66,7 @@ class DatabaseAuthHandler:
             # Convert string user_id back to int for database lookup
             payload["sub"] = int(user_id_str)
             return payload
-        except jwt.PyJWTError:
+        except PyJWTError:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Could not validate credentials",

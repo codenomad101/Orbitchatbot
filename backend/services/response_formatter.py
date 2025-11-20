@@ -107,7 +107,7 @@ class ResponseFormatter:
         return response
     
     def _format_technical_response(self, response: str) -> str:
-        """Format technical responses with proper structure and conciseness"""
+        """Format technical responses with proper markdown structure"""
         # Clean up the response first
         response = re.sub(r'\*\*([^*]+)\*\*', r'**\1**', response)  # Fix headers
         
@@ -115,7 +115,7 @@ class ResponseFormatter:
         lines = response.split('\n')
         formatted_lines = []
         bullet_count = 0
-        max_bullets = 5  # Limit number of bullet points
+        max_bullets = 8  # Allow more bullet points for technical content
         
         for line in lines:
             line = line.strip()
@@ -123,19 +123,20 @@ class ResponseFormatter:
                 formatted_lines.append('')
                 continue
                 
-            # Handle headers
+            # Handle headers - convert to markdown headers
             if line.startswith('**') and line.endswith('**'):
-                formatted_lines.append(line)
-            # Handle bullet points - convert any bullet style to •
+                header_text = line.replace('**', '').strip()
+                formatted_lines.append(f'## {header_text}')
+            # Handle bullet points - convert to markdown bullets
             elif line.startswith('•') or line.startswith('*') or line.startswith('-'):
                 if bullet_count < max_bullets:
-                    # Convert to proper bullet
-                    line = re.sub(r'^[\*\-\•]\s*', '• ', line)
-                    formatted_lines.append(line)
+                    # Convert to markdown bullet
+                    bullet_text = re.sub(r'^[\*\-\•]\s*', '', line)
+                    formatted_lines.append(f'- {bullet_text}')
                     bullet_count += 1
-            # Handle numbered lists
+            # Handle numbered lists - convert to markdown numbered lists
             elif re.match(r'^\d+\.', line):
-                formatted_lines.append(line)
+                formatted_lines.append(line)  # Keep as is for markdown
             else:
                 # Regular text - preserve all content
                 formatted_lines.append(line)
@@ -147,35 +148,50 @@ class ResponseFormatter:
         return result
     
     def _format_code_response(self, response: str) -> str:
-        """Format code responses - keep only essential code"""
+        """Format code responses with proper markdown code blocks"""
+        # Look for code blocks first
+        code_match = re.search(r'```.*?\n(.*?)```', response, re.DOTALL)
+        if code_match:
+            code_content = code_match.group(1).strip()
+            return f'```python\n{code_content}\n```'
+        
         # Extract the main function/code block
         code_match = re.search(r'def\s+\w+.*?(?=\n(?:def|\Z))', response, re.DOTALL)
         if code_match:
-            return code_match.group(0).strip()
+            code_content = code_match.group(0).strip()
+            return f'```python\n{code_content}\n```'
         
-        # If no function found, return first code block
-        code_match = re.search(r'```.*?\n(.*?)```', response, re.DOTALL)
-        if code_match:
-            return code_match.group(1).strip()
-        
-        return response.strip()
+        # If no function found, wrap the entire response in code block
+        return f'```python\n{response.strip()}\n```'
     
     def _format_document_response(self, response: str) -> str:
-        """Format document query responses concisely"""
+        """Format document query responses with markdown structure"""
         # Split into main points and keep only the most relevant
         sentences = self._split_sentences(response)
-        if len(sentences) > 3:
-            sentences = sentences[:3]  # Keep only first 3 sentences
+        if len(sentences) > 4:
+            sentences = sentences[:4]  # Keep more sentences for document queries
         
-        return '. '.join(sentences) + '.' if sentences else response
+        # Format as markdown paragraphs
+        formatted_response = '. '.join(sentences) + '.' if sentences else response
+        
+        # Convert any bullet points to markdown format
+        formatted_response = re.sub(r'^\s*[\*\-\•]\s*', '- ', formatted_response, flags=re.MULTILINE)
+        
+        return formatted_response
     
     def _format_general_response(self, response: str) -> str:
-        """Format general responses - keep it brief"""
+        """Format general responses with markdown structure"""
         sentences = self._split_sentences(response)
-        if len(sentences) > 2:
-            sentences = sentences[:2]  # Keep only first 2 sentences
+        if len(sentences) > 3:
+            sentences = sentences[:3]  # Keep more sentences for general responses
         
-        return '. '.join(sentences) + '.' if sentences else response
+        # Format as markdown paragraphs
+        formatted_response = '. '.join(sentences) + '.' if sentences else response
+        
+        # Convert any bullet points to markdown format
+        formatted_response = re.sub(r'^\s*[\*\-\•]\s*', '- ', formatted_response, flags=re.MULTILINE)
+        
+        return formatted_response
     
     def truncate_response(self, response: str, max_length: int = None) -> str:
         """Truncate response if too long"""

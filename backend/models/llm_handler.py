@@ -21,11 +21,11 @@ class LLMHandler:
             print(f"Error generating response: {e}")
             return f"Sorry, I encountered an error while generating the response: {str(e)}"
     
-    async def generate_response_with_metadata(self, prompt: str, context: List[str] = None) -> Dict[str, Any]:
+    async def generate_response_with_metadata(self, prompt: str, context: List[str] = None, provider: str = None) -> Dict[str, Any]:
         """Generate response with full metadata including intent classification"""
         try:
             # Use the model router for intelligent routing
-            result = self.model_router.route_query(prompt, context)
+            result = self.model_router.route_query(prompt, context, provider=provider)
             return result
             
         except Exception as e:
@@ -35,6 +35,7 @@ class LLMHandler:
                 'intent': 'error',
                 'confidence': 0.0,
                 'model_used': 'none',
+                'provider': provider or 'unknown',
                 'metadata': {'error': str(e)},
                 'explanation': 'Error response'
             }

@@ -1,6 +1,5 @@
 import os
 from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import logging
 
@@ -22,7 +21,10 @@ engine = create_engine(
 )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-Base = declarative_base()
+
+# Import Base from models to ensure single Base instance
+# This must be imported after engine creation to avoid circular imports
+from database.models import Base
 
 def get_db():
     """Dependency to get database session"""
@@ -35,6 +37,8 @@ def get_db():
 def init_database():
     """Initialize database tables"""
     try:
+        # Import all models to ensure they're registered with Base
+        from database import models  # noqa: F401
         Base.metadata.create_all(bind=engine)
         logger.info("Database tables created successfully")
     except Exception as e:

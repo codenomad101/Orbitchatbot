@@ -1,8 +1,8 @@
 import React from 'react';
+import { marked } from 'marked';
 import {
   Typography,
   Box,
-  Paper,
 } from '@mui/material';
 
 interface FormattedTextProps {
@@ -10,6 +10,12 @@ interface FormattedTextProps {
   variant?: 'body1' | 'body2' | 'caption';
   color?: string;
 }
+
+// Configure marked options once outside the component
+marked.setOptions({
+  breaks: true,
+  gfm: true,
+});
 
 const FormattedText: React.FC<FormattedTextProps> = ({ 
   text, 
@@ -19,211 +25,116 @@ const FormattedText: React.FC<FormattedTextProps> = ({
   const formatText = (text: string) => {
     if (!text) return null;
 
-    const lines = text.split('\n');
-    const formatted = [];
-    let currentList = [];
-    let listType = null;
+    // Debug: Check if text is actually a string
+    if (typeof text !== 'string') {
+      console.error('FormattedText received non-string:', typeof text, text);
+      return (
+        <Typography
+          variant={variant}
+          sx={{
+            color: color,
+            mb: 2,
+            lineHeight: 1.6,
+            whiteSpace: 'pre-wrap',
+          }}
+        >
+          Error: Expected string but received {typeof text}
+        </Typography>
+      );
+    }
 
-    const flushList = () => {
-      if (currentList.length > 0) {
-        if (listType === 'numbered') {
-          formatted.push(
-            <Box key={`numbered-list-${formatted.length}`} sx={{ mb: 2 }}>
-              {currentList.map((item, idx) => (
-                <Box
-                  key={idx}
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    mb: 1,
-                  }}
-                >
-                  <Typography
-                    sx={{
-                      color: color,
-                      mr: 1.5,
-                      fontWeight: 'bold',
-                      minWidth: '24px',
-                      lineHeight: 1.6,
-                    }}
-                  >
-                    {item.number}.
-                  </Typography>
-                  <Typography
-                    variant={variant}
-                    sx={{
-                      color: color,
-                      flex: 1,
-                      lineHeight: 1.6,
-                    }}
-                  >
-                    {item.content}
-                  </Typography>
-                </Box>
-              ))}
-            </Box>
-          );
-        } else if (listType === 'bullet') {
-          formatted.push(
-            <Box key={`bullet-list-${formatted.length}`} sx={{ mb: 2 }}>
-              {currentList.map((item, idx) => (
-                <Box
-                  key={idx}
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    mb: 1,
-                  }}
-                >
-                  <Typography
-                    sx={{
-                      color: color,
-                      mr: 1.5,
-                      fontSize: '1.2em',
-                      lineHeight: 1.6,
-                      minWidth: '16px',
-                    }}
-                  >
-                    •
-                  </Typography>
-                  <Typography
-                    variant={variant}
-                    sx={{
-                      color: color,
-                      flex: 1,
-                      lineHeight: 1.6,
-                    }}
-                  >
-                    {item}
-                  </Typography>
-                </Box>
-              ))}
-            </Box>
-          );
-        }
-        currentList = [];
-        listType = null;
-      }
-    };
-
-    lines.forEach((line, index) => {
-      const trimmedLine = line.trim();
+    try {
+      // Convert markdown to HTML (options already configured)
+      const htmlContent = marked.parse(text);
       
-      // Skip empty lines but add spacing between sections
-      if (trimmedLine === '') {
-        flushList();
-        return;
-      }
+      // Ensure htmlContent is a string
+      const htmlString = typeof htmlContent === 'string' ? htmlContent : String(htmlContent);
 
-      // Handle headers (text wrapped in **)
-      if (trimmedLine.match(/^\*\*.*\*\*$/)) {
-        flushList();
-        const headerText = trimmedLine.replace(/\*\*/g, '');
-        formatted.push(
-          <Typography
-            key={`header-${index}`}
-            variant="h6"
-            sx={{
+      return (
+        <Box
+          sx={{
+            '& h1, & h2, & h3, & h4, & h5, & h6': {
               fontWeight: 'bold',
               color: color,
-              mb: 2,
-              mt: formatted.length > 0 ? 3 : 0,
-            }}
-          >
-            {headerText}
-          </Typography>
-        );
-        return;
-      }
-
-      // Handle numbered lists
-      const numberMatch = trimmedLine.match(/^(\d+)\.\s*(.*)/);
-      if (numberMatch) {
-        const [, number, content] = numberMatch;
-        if (listType !== 'numbered') {
-          flushList();
-          listType = 'numbered';
-        }
-        currentList.push({
-          number: parseInt(number),
-          content: content
-        });
-        return;
-      }
-
-      // Handle bullet points (lines starting with •)
-      if (trimmedLine.startsWith('•')) {
-        if (listType !== 'bullet') {
-          flushList();
-          listType = 'bullet';
-        }
-        const bulletText = trimmedLine.substring(1).trim();
-        currentList.push(bulletText);
-        return;
-      }
-
-      // Handle code blocks (lines starting with spaces or containing code patterns)
-      if (line.startsWith('    ') || 
-          trimmedLine.includes('def ') || 
-          trimmedLine.includes('function ') ||
-          trimmedLine.includes('const ') ||
-          trimmedLine.includes('import ') ||
-          /^[a-zA-Z_$][a-zA-Z0-9_$]*\s*[=:({]/.test(trimmedLine)) {
-        flushList();
-        formatted.push(
-          <Paper
-            key={`code-${index}`}
-            elevation={0}
-            sx={{
-              p: 2,
+              marginBottom: 2,
+              marginTop: 3,
+              lineHeight: 1.4,
+            },
+            '& p': {
+              marginBottom: 2,
+              lineHeight: 1.6,
+              color: color,
+            },
+            '& ul, & ol': {
+              marginBottom: 2,
+              paddingLeft: 3,
+              color: color,
+              '& li': {
+                marginBottom: 1,
+                lineHeight: 1.6,
+              },
+            },
+            '& pre, & code': {
               backgroundColor: '#f5f5f5',
               border: '1px solid #e0e0e0',
               borderRadius: 1,
-              mb: 2,
-              overflow: 'auto',
-            }}
-          >
-            <Typography
-              component="pre"
-              sx={{
-                color: '#333',
-                fontFamily: 'Monaco, Consolas, "Courier New", monospace',
-                fontSize: '0.9em',
-                lineHeight: 1.4,
-                whiteSpace: 'pre-wrap',
-                margin: 0,
-              }}
-            >
-              {line}
-            </Typography>
-          </Paper>
-        );
-        return;
-      }
-
-      // Handle regular paragraphs
-      if (trimmedLine) {
-        flushList();
-        formatted.push(
-          <Typography
-            key={`para-${index}`}
-            variant={variant}
-            sx={{
+              padding: 2,
+              margin: '16px 0',
+              overflowX: 'auto',
+              fontFamily: 'Monaco, Consolas, "Courier New", monospace',
+              fontSize: '0.9em',
+              lineHeight: 1.4,
+              color: '#333',
+              whiteSpace: 'pre-wrap',
+            },
+            '& blockquote': {
+              borderLeft: '4px solid #0000fe',
+              margin: '16px 0',
+              paddingLeft: 2,
               color: color,
-              mb: 2,
-              lineHeight: 1.6,
-            }}
-          >
-            {trimmedLine}
-          </Typography>
-        );
-      }
-    });
-
-    // Flush any remaining list
-    flushList();
-
-    return formatted;
+              fontStyle: 'italic',
+            },
+            '& strong': {
+              fontWeight: 'bold',
+              color: color,
+            },
+            '& em': {
+              fontStyle: 'italic',
+              color: color,
+            },
+            '& a': {
+              color: '#0000fe',
+              textDecoration: 'underline',
+              '&:hover': {
+                textDecoration: 'none',
+              },
+            },
+            '& hr': {
+              border: 'none',
+              borderTop: '1px solid #e0e0e0',
+              margin: '24px 0',
+            },
+          }}
+          dangerouslySetInnerHTML={{ __html: htmlString }}
+        />
+      );
+    } catch (error) {
+      console.error('Error parsing markdown:', error);
+      // Fallback to plain text if markdown parsing fails
+      return (
+        <Typography
+          variant={variant}
+          sx={{
+            color: color,
+            mb: 2,
+            lineHeight: 1.6,
+            whiteSpace: 'pre-wrap',
+          }}
+        >
+          {text}
+        </Typography>
+      );
+    }
   };
 
   return (
