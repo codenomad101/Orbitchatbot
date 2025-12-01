@@ -77,7 +77,8 @@ class Config:
         """Ensure all required directories exist"""
         directories = [
             cls.VECTOR_STORE_PATH,
-            cls.UPLOAD_DIR
+            cls.UPLOAD_DIR,
+            Path(cls.UPLOAD_DIR) / "images"  # Images subdirectory
         ]
         for directory in directories:
             Path(directory).mkdir(parents=True, exist_ok=True)

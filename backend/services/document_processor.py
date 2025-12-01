@@ -5,8 +5,18 @@ from typing import List, Dict, Any
 from pathlib import Path
 import logging
 from utils import config
+from PIL import Image
+import os
 
 logger = logging.getLogger(__name__)
+
+# OCR for text extraction from images
+try:
+    import pytesseract
+    OCR_AVAILABLE = True
+except ImportError:
+    OCR_AVAILABLE = False
+    logger.warning("pytesseract not available. OCR functionality will be disabled.")
 
 class DocumentProcessor:
     def __init__(self):
@@ -170,6 +180,92 @@ class DocumentProcessor:
         # Fallback to word count
         return len(text.split())
     
+    def process_image(self, file_path: str) -> Dict[str, Any]:
+        """Process an image file and extract text using OCR, along with metadata"""
+        file_path = Path(file_path)
+        
+        if not file_path.exists():
+            raise FileNotFoundError(f"Image not found: {file_path}")
+        
+        metadata = {
+            "file_name": file_path.name,
+            "file_type": file_path.suffix[1:].lower() if file_path.suffix else "unknown",
+            "file_size": file_path.stat().st_size
+        }
+        
+        extracted_text = ""
+        ocr_successful = False
+        
+        # Try to extract image metadata and perform OCR
+        try:
+            with Image.open(file_path) as img:
+                metadata["width"] = img.width
+                metadata["height"] = img.height
+                metadata["format"] = img.format
+                metadata["mode"] = img.mode
+                
+                # Perform OCR to extract text from image
+                if OCR_AVAILABLE:
+                    try:
+                        # Extract text using Tesseract OCR
+                        extracted_text = pytesseract.image_to_string(img, lang='eng')
+                        
+                        # Clean up the extracted text
+                        if extracted_text:
+                            extracted_text = extracted_text.strip()
+                            # Remove excessive whitespace
+                            extracted_text = ' '.join(extracted_text.split())
+                            ocr_successful = True
+                            logger.info(f"Successfully extracted {len(extracted_text)} characters from image {file_path.name}")
+                        else:
+                            logger.info(f"No text found in image {file_path.name} via OCR")
+                    except Exception as ocr_error:
+                        logger.warning(f"OCR failed for {file_path.name}: {ocr_error}")
+                        # Continue with metadata-only description
+                else:
+                    logger.warning("OCR not available. Install pytesseract and Tesseract OCR to enable text extraction.")
+                
+                # Create description combining OCR text and metadata
+                description_parts = []
+                
+                # Add OCR extracted text if available
+                if extracted_text:
+                    description_parts.append(extracted_text)
+                
+                # Add metadata information
+                metadata_info = f"Image file: {file_path.name}. "
+                metadata_info += f"Dimensions: {img.width}x{img.height} pixels. "
+                metadata_info += f"Format: {img.format or 'unknown'}. "
+                
+                # Add filename as searchable text
+                filename_without_ext = file_path.stem
+                metadata_info += f"Filename: {filename_without_ext}."
+                
+                # Combine OCR text and metadata
+                if description_parts:
+                    # If OCR text exists, add metadata as additional context
+                    description = "\n\n".join(description_parts) + "\n\n" + metadata_info
+                else:
+                    # If no OCR text, use metadata only
+                    description = metadata_info
+                
+                # Add OCR status to metadata
+                metadata["ocr_performed"] = OCR_AVAILABLE
+                metadata["ocr_successful"] = ocr_successful
+                metadata["text_extracted_length"] = len(extracted_text) if extracted_text else 0
+                
+        except Exception as e:
+            logger.error(f"Error processing image {file_path}: {e}")
+            # Fallback description
+            description = f"Image file: {file_path.name}"
+            metadata["ocr_performed"] = False
+            metadata["ocr_successful"] = False
+        
+        return {
+            "text": description,
+            "metadata": metadata
+        }
+    
     def get_file_info(self, file_path: str) -> Dict[str, Any]:
         """Get basic file information"""
         file_path = Path(file_path)
@@ -178,5 +274,5 @@ class DocumentProcessor:
             "name": file_path.name,
             "size": file_path.stat().st_size,
             "extension": file_path.suffix.lower(),
-            "supported": file_path.suffix.lower() in ['.pdf', '.docx', '.txt']
+            "supported": file_path.suffix.lower() in ['.pdf', '.docx', '.txt', '.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg']
         }
